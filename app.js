@@ -24,12 +24,12 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   }
 });
 
-// User-scoped references (initialized after auth)
+// User-scoped references
 let utangCol = null;
 let settingsDoc = null;
 let currentUser = null;
 
-// Philippine Product Barcode Catalog
+// Product Barcode Catalog
 const BARCODE_CATALOG = {
   "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
   "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
@@ -39,14 +39,14 @@ const BARCODE_CATALOG = {
   "4800016643018": { name: "Lucky Me Beef Mami", price: 15 }
 };
 
-// App State
+// State
 let records = [];
 let settings = { storeName: "Tindahan", gcash: "", maya: "" };
 let activeFilter = "all";
 let currentView = "ledger";
 let html5QrCode = null;
 
-// DOM Elements
+// Elements
 const ledgerBody = document.getElementById("ledger-body");
 const sukiBody = document.getElementById("suki-body");
 const emptyState = document.getElementById("empty-state");
@@ -61,6 +61,7 @@ const filterTabs = document.querySelectorAll(".tab-btn");
 const sectionLedger = document.getElementById("section-ledger");
 const sectionSuki = document.getElementById("section-suki");
 const btnToggleView = document.getElementById("btn-toggle-view");
+const btnToggleText = document.getElementById("btn-toggle-text");
 
 // Modals
 const modalAdd = document.getElementById("modal-add");
@@ -68,6 +69,27 @@ const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
 const modalSettings = document.getElementById("modal-settings");
 const toast = document.getElementById("toast");
+
+// Yellow-Green Neon Click Ripple Effect
+document.addEventListener("click", (e) => {
+  const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn");
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect();
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+
+  const size = Math.max(rect.width, rect.height);
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top - size / 2;
+
+  ripple.style.width = ripple.style.height = `${size}px`;
+  ripple.style.left = `${x}px`;
+  ripple.style.top = `${y}px`;
+
+  target.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 500);
+});
 
 function showToast(msg) {
   toast.innerText = msg;
@@ -82,11 +104,10 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// 2. Authenticate and listen to user-isolated collection
+// Auth State Isolation
 auth.onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
-    // Each tester/device gets their own private path: users/{uid}/records
     utangCol = db.collection("users").doc(user.uid).collection("records");
     settingsDoc = db.collection("users").doc(user.uid).collection("config").doc("store_settings");
 
@@ -97,20 +118,13 @@ auth.onAuthStateChanged((user) => {
       });
       renderLedger();
       renderSukiDirectory();
-    }, (err) => {
-      console.error("Firestore listen error:", err);
-    });
+    }, console.error);
 
     settingsDoc.onSnapshot((doc) => {
-      if (doc.exists) {
-        settings = doc.data();
-      }
+      if (doc.exists) settings = doc.data();
     });
   } else {
-    auth.signInAnonymously().catch((error) => {
-      console.error("Auth initialization failed:", error);
-      showToast("Auth initialization issue. Check Firebase Auth settings.");
-    });
+    auth.signInAnonymously().catch(console.error);
   }
 });
 
@@ -123,7 +137,6 @@ function renderLedger() {
   let totalCollected = 0;
   let overdueCount = 0;
   let pendingCount = 0;
-
   let counts = { all: records.length, overdue: 0, pending: 0, settled: 0 };
 
   const filtered = records.filter(r => {
@@ -186,9 +199,9 @@ function renderLedger() {
       <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
       <td style="text-align: right;">
         <div class="table-actions">
-          ${balance > 0 ? `<button class="table-btn" onclick="openPayment('${r.id}')">Pay</button>` : ''}
-          ${balance > 0 ? `<button class="table-btn remind" onclick="openReminder('${r.id}')">Remind</button>` : ''}
-          <button class="table-btn" onclick="deleteRecord('${r.id}')">Delete</button>
+          ${balance > 0 ? `<button class="table-btn interactive-fx" onclick="openPayment('${r.id}')">Pay</button>` : ''}
+          ${balance > 0 ? `<button class="table-btn remind interactive-fx" onclick="openReminder('${r.id}')">Remind</button>` : ''}
+          <button class="table-btn interactive-fx" onclick="deleteRecord('${r.id}')">Delete</button>
         </div>
       </td>
     `;
@@ -244,7 +257,7 @@ function renderSukiDirectory() {
         <div class="suki-phone">${c.phone}</div>
       </td>
       <td>${scoreBadge}</td>
-      <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${c.totalBalance > 0 ? '#ff3366' : 'var(--accent)'}">
+      <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${c.totalBalance > 0 ? '#ff3860' : 'var(--accent-lime)'}">
         ₱${c.totalBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}
       </td>
       <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted)">
@@ -256,19 +269,19 @@ function renderSukiDirectory() {
   });
 }
 
-// Toggle Views
+// Toggle View
 btnToggleView.addEventListener("click", () => {
   if (currentView === "ledger") {
     currentView = "suki";
     sectionLedger.classList.add("hidden");
     sectionSuki.classList.remove("hidden");
-    btnToggleView.innerText = "📋 View Ledger";
+    btnToggleText.innerText = "View Ledger";
     renderSukiDirectory();
   } else {
     currentView = "ledger";
     sectionSuki.classList.add("hidden");
     sectionLedger.classList.remove("hidden");
-    btnToggleView.innerText = "👥 Suki Directory";
+    btnToggleText.innerText = "Suki Directory";
     renderLedger();
   }
 });

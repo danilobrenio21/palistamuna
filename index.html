@@ -29,10 +29,22 @@
         <img src="palistamuna.jpg" alt="Palista Muna Logo" class="brand-logo">
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" id="btn-toggle-view">👥 Suki Directory</button>
-        <button class="btn btn-secondary" id="btn-open-settings">⚙️ Settings</button>
-        <button class="btn btn-secondary" id="btn-export">Export (CSV)</button>
-        <button class="btn btn-primary" id="btn-open-add">+ Add Record</button>
+        <button class="btn btn-secondary interactive-fx" id="btn-toggle-view">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span id="btn-toggle-text">Suki Directory</span>
+        </button>
+        <button class="btn btn-secondary interactive-fx" id="btn-open-settings">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </button>
+        <button class="btn btn-secondary interactive-fx" id="btn-export">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-primary interactive-fx" id="btn-open-add">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add Record
+        </button>
       </div>
     </div>
   </header>
@@ -61,12 +73,13 @@
     <div id="section-ledger">
       <section class="controls-bar">
         <div class="filter-tabs">
-          <button class="tab-btn active" data-filter="all">All (<span id="count-all">0</span>)</button>
-          <button class="tab-btn" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
-          <button class="tab-btn" data-filter="pending">Active (<span id="count-pending">0</span>)</button>
-          <button class="tab-btn" data-filter="settled">Settled (<span id="count-settled">0</span>)</button>
+          <button class="tab-btn interactive-fx active" data-filter="all">All (<span id="count-all">0</span>)</button>
+          <button class="tab-btn interactive-fx" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
+          <button class="tab-btn interactive-fx" data-filter="pending">Active (<span id="count-pending">0</span>)</button>
+          <button class="tab-btn interactive-fx" data-filter="settled">Settled (<span id="count-settled">0</span>)</button>
         </div>
         <div class="search-box">
+          <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input type="text" id="search-input" placeholder="Search customer name or phone...">
         </div>
       </section>
@@ -128,7 +141,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Store & Payment Settings</h3>
-        <button class="btn-close" id="btn-close-settings">&times;</button>
+        <button class="btn-close interactive-fx" id="btn-close-settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <form id="form-settings">
         <div class="form-group">
@@ -144,8 +159,8 @@
           <input type="tel" id="setting-maya" placeholder="09xxxxxxxxx">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Settings</button>
+          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-settings">Cancel</button>
+          <button type="submit" class="btn btn-primary interactive-fx">Save Settings</button>
         </div>
       </form>
     </div>
@@ -155,8 +170,10 @@
   <div class="modal-overlay hidden" id="modal-add">
     <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
-        <h3>+ Add Credit Record</h3>
-        <button class="btn-close" id="btn-close-add">&times;</button>
+        <h3>New Credit Record</h3>
+        <button class="btn-close interactive-fx" id="btn-close-add">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <form id="form-add">
         <div class="form-group">
@@ -176,13 +193,13 @@
 
         <!-- Quick Item Tally Presets -->
         <div class="form-group">
-          <label>Quick Tally Presets (Click to add amount & items)</label>
+          <label>Quick Tally Presets</label>
           <div class="quick-presets">
-            <button type="button" class="btn-preset tally-btn" data-name="1kg Bigas" data-price="55">+₱55 Bigas (1kg)</button>
-            <button type="button" class="btn-preset tally-btn" data-name="Lucky Me Pancit Canton" data-price="18">+₱18 Canton</button>
-            <button type="button" class="btn-preset tally-btn" data-name="Canned Sardines" data-price="25">+₱25 Sardinas</button>
-            <button type="button" class="btn-preset tally-btn" data-name="Softdrink 1.5L" data-price="70">+₱70 Softdrink</button>
-            <button type="button" class="btn-preset tally-btn" data-name="Egg (1pc)" data-price="9">+₱9 Itlog</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="1kg Bigas" data-price="55">+₱55 Bigas (1kg)</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Lucky Me Pancit Canton" data-price="18">+₱18 Canton</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Canned Sardines" data-price="25">+₱25 Sardinas</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Softdrink 1.5L" data-price="70">+₱70 Softdrink</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Egg (1pc)" data-price="9">+₱9 Itlog</button>
           </div>
         </div>
 
@@ -190,11 +207,14 @@
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
             <label style="margin: 0;">Items Purchased</label>
-            <button type="button" class="btn btn-secondary" id="btn-toggle-scanner" style="padding: 4px 8px; font-size: 11px;">📷 Scan Barcode</button>
+            <button type="button" class="btn btn-secondary interactive-fx" id="btn-toggle-scanner" style="padding: 4px 10px; font-size: 11px;">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 13px; height: 13px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              Scan Barcode
+            </button>
           </div>
           <div id="scanner-wrapper" class="hidden" style="margin-bottom: 10px; background: #000; border-radius: 8px; overflow: hidden;">
             <div id="reader" style="width: 100%;"></div>
-            <button type="button" class="btn btn-secondary" id="btn-stop-scanner" style="width: 100%; border-radius: 0;">Stop Scanner</button>
+            <button type="button" class="btn btn-secondary interactive-fx" id="btn-stop-scanner" style="width: 100%; border-radius: 0;">Stop Scanner</button>
           </div>
           <input type="text" id="add-items" placeholder="Items will auto-fill or enter manually">
         </div>
@@ -202,15 +222,15 @@
         <div class="form-group">
           <label>Due Date *</label>
           <div class="quick-presets">
-            <button type="button" class="btn-preset" data-days="7">+7 Days</button>
-            <button type="button" class="btn-preset" data-preset="15th">Payday (15th)</button>
-            <button type="button" class="btn-preset" data-preset="30th">End of Month (30th)</button>
+            <button type="button" class="btn-preset interactive-fx" data-days="7">+7 Days</button>
+            <button type="button" class="btn-preset interactive-fx" data-preset="15th">Payday (15th)</button>
+            <button type="button" class="btn-preset interactive-fx" data-preset="30th">End of Month (30th)</button>
           </div>
           <input type="date" id="add-due-date" required>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Record</button>
+          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-add">Cancel</button>
+          <button type="submit" class="btn btn-primary interactive-fx">Save Record</button>
         </div>
       </form>
     </div>
@@ -221,7 +241,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Record Payment</h3>
-        <button class="btn-close" id="btn-close-payment">&times;</button>
+        <button class="btn-close interactive-fx" id="btn-close-payment">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <form id="form-payment">
         <input type="hidden" id="pay-id">
@@ -234,8 +256,8 @@
           <input type="number" id="pay-amount" placeholder="0.00" min="1" step="any" required>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-pay">Cancel</button>
-          <button type="submit" class="btn btn-primary">Confirm Payment</button>
+          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-pay">Cancel</button>
+          <button type="submit" class="btn btn-primary interactive-fx">Confirm Payment</button>
         </div>
       </form>
     </div>
@@ -245,8 +267,10 @@
   <div class="modal-overlay hidden" id="modal-reminder">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Send Payment Reminder (SMS)</h3>
-        <button class="btn-close" id="btn-close-reminder">&times;</button>
+        <h3>Payment Reminder Notice</h3>
+        <button class="btn-close interactive-fx" id="btn-close-reminder">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
       <div class="reminder-body">
         <p class="reminder-to">Recipient: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
@@ -254,8 +278,8 @@
         <textarea id="remind-text" rows="5" style="width: 100%; margin-top: 6px;"></textarea>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btn-copy-sms">Copy Text</button>
-        <a id="btn-trigger-sms" class="btn btn-primary" href="#">Open SMS App</a>
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-copy-sms">Copy Text</button>
+        <a id="btn-trigger-sms" class="btn btn-primary interactive-fx" href="#">Open SMS App</a>
       </div>
     </div>
   </div>
@@ -265,7 +289,7 @@
   <!-- Barcode Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <!-- Firebase SDKs: App, Auth, and Firestore -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
