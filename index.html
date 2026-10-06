@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Palista Muna - Digital Kwaderno</title>
+  <title>Palista Muna - Digital Ledger</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,12 +14,12 @@
   <header class="app-header">
     <div class="header-container">
       <div class="brand">
-        <div class="brand-badge">⚡ DIGITAL KWADERNO</div>
+        <div class="brand-badge">⚡ DIGITAL LEDGER</div>
         <h1 class="brand-title">PALISTA <span>MUNA</span></h1>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" id="btn-export">I-export (CSV)</button>
-        <button class="btn btn-primary" id="btn-open-add">+ Maglista ng Utang</button>
+        <button class="btn btn-secondary" id="btn-export">Export (CSV)</button>
+        <button class="btn btn-primary" id="btn-open-add">+ Add Record</button>
       </div>
     </div>
   </header>
@@ -28,32 +28,32 @@
     <!-- Analytics Grid -->
     <section class="metrics-grid">
       <div class="card metric-card">
-        <span class="metric-label">Dapat Singilin (Total)</span>
+        <span class="metric-label">Total Collectible</span>
         <div class="metric-val" id="total-collectible">₱0.00</div>
-        <span class="metric-sub" id="active-suki-count">0 suki ang may utang</span>
+        <span class="metric-sub" id="active-suki-count">0 active borrowers</span>
       </div>
       <div class="card metric-card alert-card">
-        <span class="metric-label">Lagpas na sa Due Date</span>
+        <span class="metric-label">Overdue Balance</span>
         <div class="metric-val text-danger" id="total-overdue">₱0.00</div>
-        <span class="metric-sub text-danger" id="overdue-count">0 ang overdue</span>
+        <span class="metric-sub text-danger" id="overdue-count">0 overdue accounts</span>
       </div>
       <div class="card metric-card">
-        <span class="metric-label">Nasingil Ngayong Buwan</span>
+        <span class="metric-label">Collected This Month</span>
         <div class="metric-val text-accent" id="total-collected">₱0.00</div>
-        <span class="metric-sub">Pumasok sa kaha</span>
+        <span class="metric-sub">Total received</span>
       </div>
     </section>
 
     <!-- Controls Bar -->
     <section class="controls-bar">
       <div class="filter-tabs">
-        <button class="tab-btn active" data-filter="all">Lahat (<span id="count-all">0</span>)</button>
+        <button class="tab-btn active" data-filter="all">All (<span id="count-all">0</span>)</button>
         <button class="tab-btn" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
-        <button class="tab-btn" data-filter="pending">Aktibo (<span id="count-pending">0</span>)</button>
-        <button class="tab-btn" data-filter="settled">Bayad Na (<span id="count-settled">0</span>)</button>
+        <button class="tab-btn" data-filter="pending">Active (<span id="count-pending">0</span>)</button>
+        <button class="tab-btn" data-filter="settled">Settled (<span id="count-settled">0</span>)</button>
       </div>
       <div class="search-box">
-        <input type="text" id="search-input" placeholder="Maghanap ng pangalan o cellphone...">
+        <input type="text" id="search-input" placeholder="Search customer name or phone...">
       </div>
     </section>
 
@@ -63,12 +63,12 @@
         <table class="ledger-table">
           <thead>
             <tr>
-              <th>Pangalan ng Suki</th>
-              <th>Binili / Talaan</th>
-              <th>Balanse</th>
+              <th>Customer Name</th>
+              <th>Items / Details</th>
+              <th>Balance</th>
               <th>Due Date</th>
               <th>Status</th>
-              <th style="text-align: right;">Aksyon</th>
+              <th style="text-align: right;">Action</th>
             </tr>
           </thead>
           <tbody id="ledger-body">
@@ -77,7 +77,7 @@
         </table>
       </div>
       <div id="empty-state" class="empty-state hidden">
-        <p>Walang listahan na tumutugma sa filter.</p>
+        <p>No records match the current filter.</p>
       </div>
     </section>
   </main>
@@ -86,65 +86,65 @@
   <div class="modal-overlay hidden" id="modal-add">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>+ Bagong Listang Utang</h3>
+        <h3>+ Add Credit Record</h3>
         <button class="btn-close" id="btn-close-add">&times;</button>
       </div>
       <form id="form-add">
         <div class="form-group">
-          <label>Pangalan ng Suki *</label>
-          <input type="text" id="add-name" placeholder="Hal. Kapitbahay Nena" required>
+          <label>Customer Name *</label>
+          <input type="text" id="add-name" placeholder="e.g. Maria Santos" required>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Cellphone Number *</label>
+            <label>Mobile Number *</label>
             <input type="tel" id="add-phone" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
           </div>
           <div class="form-group">
-            <label>Halaga (₱) *</label>
+            <label>Total Amount (₱) *</label>
             <input type="number" id="add-amount" placeholder="0.00" min="1" step="any" required>
           </div>
         </div>
         <div class="form-group">
-          <label>Mga Binili (Items list)</label>
-          <input type="text" id="add-items" placeholder="Hal. 2 Sardinas, 1 Mantika, 3 Lucky Me">
+          <label>Items Purchased</label>
+          <input type="text" id="add-items" placeholder="e.g. 2 Canned Tuna, 1 Cooking Oil">
         </div>
         <div class="form-group">
-          <label>Due Date (Petsa ng Bayaran) *</label>
+          <label>Due Date *</label>
           <div class="quick-presets">
-            <button type="button" class="btn-preset" data-days="7">+7 Araw</button>
-            <button type="button" class="btn-preset" data-preset="15th">Katapusan (15th)</button>
-            <button type="button" class="btn-preset" data-preset="30th">Katapusan (30th)</button>
+            <button type="button" class="btn-preset" data-days="7">+7 Days</button>
+            <button type="button" class="btn-preset" data-preset="15th">Payday (15th)</button>
+            <button type="button" class="btn-preset" data-preset="30th">End of Month (30th)</button>
           </div>
           <input type="date" id="add-due-date" required>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Kanselahin</button>
-          <button type="submit" class="btn btn-primary">Ilista Na</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Record</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Partial Payment -->
+  <!-- Modal: Payment -->
   <div class="modal-overlay hidden" id="modal-payment">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Magbayad ng Utang</h3>
+        <h3>Record Payment</h3>
         <button class="btn-close" id="btn-close-payment">&times;</button>
       </div>
       <form id="form-payment">
         <input type="hidden" id="pay-id">
         <div class="pay-summary">
           <div class="pay-name" id="pay-name">---</div>
-          <div class="pay-balance-label">Kasalukuyang Balanse: <span id="pay-balance" class="text-accent">₱0.00</span></div>
+          <div class="pay-balance-label">Current Balance: <span id="pay-balance" class="text-accent">₱0.00</span></div>
         </div>
         <div class="form-group">
-          <label>Halaga ng Ibinayad (₱) *</label>
+          <label>Payment Amount (₱) *</label>
           <input type="number" id="pay-amount" placeholder="0.00" min="1" step="any" required>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-pay">Kanselahin</button>
-          <button type="submit" class="btn btn-primary">Itala ang Bayad</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-pay">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Payment</button>
         </div>
       </form>
     </div>
@@ -154,22 +154,22 @@
   <div class="modal-overlay hidden" id="modal-reminder">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Magpadala ng Paalala (SMS)</h3>
+        <h3>Send Payment Reminder (SMS)</h3>
         <button class="btn-close" id="btn-close-reminder">&times;</button>
       </div>
       <div class="reminder-body">
-        <p class="reminder-to">Ipapadala kay: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
-        <label>Mensahe (Maaaring baguhin):</label>
+        <p class="reminder-to">Recipient: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
+        <label>Message Content:</label>
         <textarea id="remind-text" rows="5"></textarea>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btn-copy-sms">Kopyahin Mensahe</button>
-        <a id="btn-trigger-sms" class="btn btn-primary" href="#">Buksan sa SMS App</a>
+        <button type="button" class="btn btn-secondary" id="btn-copy-sms">Copy Text</button>
+        <a id="btn-trigger-sms" class="btn btn-primary" href="#">Open SMS App</a>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="toast hidden">Mensahe nakopya!</div>
+  <div id="toast" class="toast hidden">Message copied to clipboard!</div>
 
   <script src="app.js"></script>
 </body>

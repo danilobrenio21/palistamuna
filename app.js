@@ -4,7 +4,7 @@ const DEFAULT_RECORDS = [
     id: "rec-1",
     name: "Aling Marites",
     phone: "09171234567",
-    items: "1 Bigas (5kg), 2 Canned Tuna, 1 Mantika",
+    items: "1 Rice (5kg), 2 Canned Tuna, 1 Cooking Oil",
     amount: 540,
     paid: 100,
     dueDate: "2026-04-05"
@@ -13,7 +13,7 @@ const DEFAULT_RECORDS = [
     id: "rec-2",
     name: "Kuya Jun Jun",
     phone: "09289876543",
-    items: "5 Red Horse, 1 Chicharon",
+    items: "5 Beers, 1 Snack Pack",
     amount: 650,
     paid: 0,
     dueDate: "2026-04-15"
@@ -100,8 +100,8 @@ function renderLedger() {
   totalCollectibleEl.innerText = `₱${totalCollectible.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
   totalOverdueEl.innerText = `₱${totalOverdue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
   totalCollectedEl.innerText = `₱${totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  activeSukiEl.innerText = `${pendingCount + overdueCount} suki ang may utang`;
-  overdueCountEl.innerText = `${overdueCount} ang lagpas sa due date`;
+  activeSukiEl.innerText = `${pendingCount + overdueCount} active accounts`;
+  overdueCountEl.innerText = `${overdueCount} overdue accounts`;
 
   if (filtered.length === 0) {
     emptyState.classList.remove("hidden");
@@ -115,7 +115,7 @@ function renderLedger() {
     const tr = document.createElement("tr");
 
     let badgeClass = status === "overdue" ? "badge-overdue" : (status === "settled" ? "badge-settled" : "badge-active");
-    let statusLabel = status === "overdue" ? "Overdue" : (status === "settled" ? "Bayad Na" : "Aktibo");
+    let statusLabel = status === "overdue" ? "Overdue" : (status === "settled" ? "Settled" : "Active");
 
     tr.innerHTML = `
       <td>
@@ -125,15 +125,15 @@ function renderLedger() {
       <td>${r.items || "—"}</td>
       <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">
         ₱${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
-        ${r.paid > 0 ? `<div style="font-size: 11px; color: var(--text-muted)">Bayad na: ₱${r.paid}</div>` : ''}
+        ${r.paid > 0 ? `<div style="font-size: 11px; color: var(--text-muted)">Paid: ₱${r.paid}</div>` : ''}
       </td>
       <td>${r.dueDate}</td>
       <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
       <td style="text-align: right;">
         <div class="table-actions">
-          ${balance > 0 ? `<button class="table-btn" onclick="openPayment('${r.id}')">Magbayad</button>` : ''}
-          ${balance > 0 ? `<button class="table-btn remind" onclick="openReminder('${r.id}')">Paalalahanan</button>` : ''}
-          <button class="table-btn" onclick="deleteRecord('${r.id}')">Burahin</button>
+          ${balance > 0 ? `<button class="table-btn" onclick="openPayment('${r.id}')">Pay</button>` : ''}
+          ${balance > 0 ? `<button class="table-btn remind" onclick="openReminder('${r.id}')">Remind</button>` : ''}
+          <button class="table-btn" onclick="deleteRecord('${r.id}')">Delete</button>
         </div>
       </td>
     `;
@@ -179,7 +179,7 @@ document.getElementById("form-add").addEventListener("submit", (e) => {
   saveRecords();
   modalAdd.classList.add("hidden");
   e.target.reset();
-  showToast("Matagumpay na nailista!");
+  showToast("Record successfully added!");
 });
 
 // Partial Payment Flow
@@ -213,7 +213,7 @@ document.getElementById("form-payment").addEventListener("submit", (e) => {
 
   saveRecords();
   modalPayment.classList.add("hidden");
-  showToast("Naitala ang bayad!");
+  showToast("Payment recorded successfully!");
 });
 
 // Reminder Flow
@@ -222,7 +222,7 @@ window.openReminder = function(id) {
   if (!record) return;
   const balance = record.amount - record.paid;
 
-  const msg = `Magandang araw po ${record.name}! Magalang na paalala lang po mula sa Tindahan ukol sa inyong balanse na ₱${balance.toFixed(2)} na nakatakdang bayaran sa ${record.dueDate}. Maraming salamat po!`;
+  const msg = `Good day ${record.name}! This is a friendly reminder regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}. Thank you!`;
 
   document.getElementById("remind-name").innerText = record.name;
   document.getElementById("remind-phone").innerText = record.phone;
@@ -238,15 +238,15 @@ document.getElementById("btn-close-reminder").addEventListener("click", () => mo
 document.getElementById("btn-copy-sms").addEventListener("click", () => {
   const text = document.getElementById("remind-text").value;
   navigator.clipboard.writeText(text);
-  showToast("Mensahe nakopya sa clipboard!");
+  showToast("Message copied to clipboard!");
 });
 
 // Delete Record
 window.deleteRecord = function(id) {
-  if (confirm("Sigurado ka bang nais mong burahin ang listahang ito?")) {
+  if (confirm("Are you sure you want to delete this record?")) {
     records = records.filter(r => r.id !== id);
     saveRecords();
-    showToast("Nai-delete na.");
+    showToast("Record deleted.");
   }
 };
 
@@ -264,7 +264,7 @@ searchInput.addEventListener("input", renderLedger);
 
 // CSV Export
 document.getElementById("btn-export").addEventListener("click", () => {
-  let csv = "Pangalan,Cellphone,Mga Binili,Kabuuang Halaga,Balanse,Due Date,Status\n";
+  let csv = "Customer Name,Phone,Items,Total Amount,Balance,Due Date,Status\n";
   records.forEach(r => {
     const bal = r.amount - r.paid;
     csv += `"${r.name}","${r.phone}","${r.items || ''}",${r.amount},${bal},${r.dueDate},${getRecordStatus(r)}\n`;
