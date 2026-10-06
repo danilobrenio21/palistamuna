@@ -1,4 +1,9 @@
-// Initial Seed Data
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(console.error);
+}
+
+// Default Seed Data
 const DEFAULT_RECORDS = [
   {
     id: "rec-1",
@@ -20,7 +25,13 @@ const DEFAULT_RECORDS = [
   }
 ];
 
+// App State
 let records = JSON.parse(localStorage.getItem("palista_records")) || DEFAULT_RECORDS;
+let settings = JSON.parse(localStorage.getItem("palista_settings")) || {
+  storeName: "Tindahan",
+  gcash: "",
+  maya: ""
+};
 let activeFilter = "all";
 
 // DOM Elements
@@ -38,6 +49,7 @@ const filterTabs = document.querySelectorAll(".tab-btn");
 const modalAdd = document.getElementById("modal-add");
 const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
+const modalSettings = document.getElementById("modal-settings");
 const toast = document.getElementById("toast");
 
 function saveRecords() {
@@ -91,7 +103,7 @@ function renderLedger() {
     return matchesFilter && matchesSearch;
   });
 
-  // Update counts
+  // Update Counters
   document.getElementById("count-all").innerText = counts.all;
   document.getElementById("count-overdue").innerText = counts.overdue;
   document.getElementById("count-pending").innerText = counts.pending;
@@ -158,7 +170,30 @@ document.querySelectorAll(".btn-preset").forEach(btn => {
   });
 });
 
-// Add Utang Flow
+// Settings Handlers
+document.getElementById("btn-open-settings").addEventListener("click", () => {
+  document.getElementById("setting-store-name").value = settings.storeName || "";
+  document.getElementById("setting-gcash").value = settings.gcash || "";
+  document.getElementById("setting-maya").value = settings.maya || "";
+  modalSettings.classList.remove("hidden");
+});
+
+document.getElementById("btn-close-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
+document.getElementById("btn-cancel-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
+
+document.getElementById("form-settings").addEventListener("submit", (e) => {
+  e.preventDefault();
+  settings = {
+    storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
+    gcash: document.getElementById("setting-gcash").value.trim(),
+    maya: document.getElementById("setting-maya").value.trim()
+  };
+  localStorage.setItem("palista_settings", JSON.stringify(settings));
+  modalSettings.classList.add("hidden");
+  showToast("Settings updated!");
+});
+
+// Add Record Handlers
 document.getElementById("btn-open-add").addEventListener("click", () => modalAdd.classList.remove("hidden"));
 document.getElementById("btn-close-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
 document.getElementById("btn-cancel-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
@@ -182,7 +217,7 @@ document.getElementById("form-add").addEventListener("submit", (e) => {
   showToast("Record successfully added!");
 });
 
-// Partial Payment Flow
+// Payment Handlers
 window.openPayment = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
@@ -216,13 +251,17 @@ document.getElementById("form-payment").addEventListener("submit", (e) => {
   showToast("Payment recorded successfully!");
 });
 
-// Reminder Flow
+// Reminder Handlers
 window.openReminder = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
   const balance = record.amount - record.paid;
 
-  const msg = `Good day ${record.name}! This is a friendly reminder regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}. Thank you!`;
+  let paymentDetails = "";
+  if (settings.gcash) paymentDetails += `\nGCash: ${settings.gcash}`;
+  if (settings.maya) paymentDetails += `\nMaya: ${settings.maya}`;
+
+  const msg = `Good day ${record.name}! This is a reminder from ${settings.storeName} regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}.${paymentDetails ? '\n\nYou may send payment via:' + paymentDetails : ''}\n\nThank you!`;
 
   document.getElementById("remind-name").innerText = record.name;
   document.getElementById("remind-phone").innerText = record.phone;

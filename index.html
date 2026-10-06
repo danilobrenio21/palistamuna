@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Palista Muna - Digital Ledger</title>
+  
+  <!-- PWA Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ccff00">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +25,7 @@
         <h1 class="brand-title">PALISTA <span>MUNA</span></h1>
       </div>
       <div class="header-actions">
+        <button class="btn btn-secondary" id="btn-open-settings">⚙️ Settings</button>
         <button class="btn btn-secondary" id="btn-export">Export (CSV)</button>
         <button class="btn btn-primary" id="btn-open-add">+ Add Record</button>
       </div>
@@ -82,7 +90,35 @@
     </section>
   </main>
 
-  <!-- Modal: Add Utang -->
+  <!-- Modal: Store & Payment Settings -->
+  <div class="modal-overlay hidden" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Store & Payment Settings</h3>
+        <button class="btn-close" id="btn-close-settings">&times;</button>
+      </div>
+      <form id="form-settings">
+        <div class="form-group">
+          <label>Store Name</label>
+          <input type="text" id="setting-store-name" placeholder="e.g. Aling Nena Store" required>
+        </div>
+        <div class="form-group">
+          <label>GCash Number (For Reminders)</label>
+          <input type="tel" id="setting-gcash" placeholder="09xxxxxxxxx">
+        </div>
+        <div class="form-group">
+          <label>Maya Number (Optional)</label>
+          <input type="tel" id="setting-maya" placeholder="09xxxxxxxxx">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Record -->
   <div class="modal-overlay hidden" id="modal-add">
     <div class="modal-content">
       <div class="modal-header">
@@ -125,7 +161,7 @@
     </div>
   </div>
 
-  <!-- Modal: Payment -->
+  <!-- Modal: Record Payment -->
   <div class="modal-overlay hidden" id="modal-payment">
     <div class="modal-content">
       <div class="modal-header">
@@ -160,7 +196,7 @@
       <div class="reminder-body">
         <p class="reminder-to">Recipient: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
         <label>Message Content:</label>
-        <textarea id="remind-text" rows="5"></textarea>
+        <textarea id="remind-text" rows="6"></textarea>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-copy-sms">Copy Text</button>
