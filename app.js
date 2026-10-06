@@ -14,6 +14,7 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Offline persistence
@@ -26,7 +27,7 @@ db.enablePersistence().catch((err) => {
 const utangCol = db.collection("records");
 const settingsDoc = db.collection("config").doc("store_settings");
 
-// Philippine Product Barcode Catalog (Expandable)
+// Philippine Product Barcode Catalog
 const BARCODE_CATALOG = {
   "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
   "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
@@ -40,7 +41,7 @@ const BARCODE_CATALOG = {
 let records = [];
 let settings = { storeName: "Tindahan", gcash: "", maya: "" };
 let activeFilter = "all";
-let currentView = "ledger"; // "ledger" or "suki"
+let currentView = "ledger";
 let html5QrCode = null;
 
 // DOM Elements
@@ -79,24 +80,31 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// Realtime Cloud Listener for Records
-utangCol.onSnapshot((snapshot) => {
-  records = [];
-  snapshot.forEach((doc) => {
-    records.push({ id: doc.id, ...doc.data() });
-  });
-  renderLedger();
-  renderSukiDirectory();
-}, (err) => {
-  console.error("Firestore listen error:", err);
-});
+// 2. Authenticate silently to satisfy hardened Firestore Rules
+auth.signInAnonymously()
+  .then(() => {
+    // Start listening once authenticated
+    utangCol.onSnapshot((snapshot) => {
+      records = [];
+      snapshot.forEach((doc) => {
+        records.push({ id: doc.id, ...doc.data() });
+      });
+      renderLedger();
+      renderSukiDirectory();
+    }, (err) => {
+      console.error("Firestore listen error:", err);
+    });
 
-// Realtime Cloud Listener for Settings
-settingsDoc.onSnapshot((doc) => {
-  if (doc.exists) {
-    settings = doc.data();
-  }
-});
+    settingsDoc.onSnapshot((doc) => {
+      if (doc.exists) {
+        settings = doc.data();
+      }
+    });
+  })
+  .catch((error) => {
+    console.error("Auth initialization failed:", error);
+    showToast("Auth initialization issue. Check Firebase Auth settings.");
+  });
 
 function renderLedger() {
   const query = searchInput.value.toLowerCase();
@@ -180,7 +188,7 @@ function renderLedger() {
   });
 }
 
-// 2. Customer Directory / Suki Profile Aggregation
+// Suki Profiles Aggregation
 function renderSukiDirectory() {
   sukiBody.innerHTML = "";
   const customers = {};
@@ -241,7 +249,7 @@ function renderSukiDirectory() {
   });
 }
 
-// Toggle Views (Ledger vs Suki Directory)
+// Toggle Views
 btnToggleView.addEventListener("click", () => {
   if (currentView === "ledger") {
     currentView = "suki";
@@ -258,7 +266,7 @@ btnToggleView.addEventListener("click", () => {
   }
 });
 
-// 3. Quick Item Tally Buttons Handlers
+// Quick Item Tally
 document.querySelectorAll(".tally-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const itemName = btn.dataset.name;
@@ -278,7 +286,7 @@ document.querySelectorAll(".tally-btn").forEach(btn => {
   });
 });
 
-// 4. Camera Barcode Scanner Integration
+// Barcode Scanner
 const btnToggleScanner = document.getElementById("btn-toggle-scanner");
 const btnStopScanner = document.getElementById("btn-stop-scanner");
 const scannerWrapper = document.getElementById("scanner-wrapper");
@@ -401,7 +409,7 @@ document.getElementById("form-add").addEventListener("submit", async (e) => {
     stopScanner();
     modalAdd.classList.add("hidden");
     e.target.reset();
-    showToast("Saved to Firebase Cloud!");
+    showToast("Saved securely to Cloud!");
   } catch (err) {
     alert("Error saving record: " + err.message);
   }
@@ -477,7 +485,7 @@ window.deleteRecord = async function(id) {
   if (confirm("Are you sure you want to delete this record?")) {
     try {
       await utangCol.doc(id).delete();
-      showToast("Record deleted from cloud.");
+      showToast("Record permanently deleted.");
     } catch (err) {
       alert("Error deleting record: " + err.message);
     }
