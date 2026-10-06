@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Palista Muna - Digital Ledger</title>
   
   <!-- PWA Meta -->
@@ -10,6 +10,7 @@
   <meta name="theme-color" content="#ccff00">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Palista Muna">
   
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,7 +56,6 @@
 
     <!-- Ledger View Section -->
     <div id="section-ledger">
-      <!-- Controls Bar -->
       <section class="controls-bar">
         <div class="filter-tabs">
           <button class="tab-btn active" data-filter="all">All (<span id="count-all">0</span>)</button>
@@ -68,7 +68,6 @@
         </div>
       </section>
 
-      <!-- Ledger Table -->
       <section class="card table-card">
         <div class="table-responsive">
           <table class="ledger-table">
@@ -94,9 +93,9 @@
     <!-- Suki Directory View Section -->
     <div id="section-suki" class="hidden">
       <section class="card table-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h2 style="font-size: 1.1rem; font-weight: 700;">Customer Directory & Suki Profiles</h2>
-          <span style="font-size: 0.85rem; color: var(--text-muted)">Lifetime Credit & Reliability Analysis</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 8px;">
+          <h2 style="font-size: 1.05rem; font-weight: 700;">Customer Directory & Suki Profiles</h2>
+          <span style="font-size: 0.78rem; color: var(--text-muted)">Lifetime Credit & Reliability Analysis</span>
         </div>
         <div class="table-responsive">
           <table class="ledger-table">
@@ -172,10 +171,10 @@
           </div>
         </div>
 
-        <!-- Quick Item Tally -->
+        <!-- Quick Item Tally Presets -->
         <div class="form-group">
           <label>Quick Tally Presets (Click to add amount & items)</label>
-          <div class="quick-presets" style="flex-wrap: wrap;">
+          <div class="quick-presets">
             <button type="button" class="btn-preset tally-btn" data-name="1kg Bigas" data-price="55">+₱55 Bigas (1kg)</button>
             <button type="button" class="btn-preset tally-btn" data-name="Lucky Me Pancit Canton" data-price="18">+₱18 Canton</button>
             <button type="button" class="btn-preset tally-btn" data-name="Canned Sardines" data-price="25">+₱25 Sardinas</button>
@@ -248,8 +247,8 @@
       </div>
       <div class="reminder-body">
         <p class="reminder-to">Recipient: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
-        <label>Message Content:</label>
-        <textarea id="remind-text" rows="6"></textarea>
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: block; margin-top: 10px;">Message Content:</label>
+        <textarea id="remind-text" rows="5" style="width: 100%; margin-top: 6px;"></textarea>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-copy-sms">Copy Text</button>

@@ -17,10 +17,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Offline persistence
-db.enablePersistence().catch((err) => {
+// Multi-tab offline persistence
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code !== 'failed-precondition') {
-    console.warn("Persistence error:", err);
+    console.warn("Persistence note:", err.code);
   }
 });
 
@@ -83,7 +83,6 @@ function getRecordStatus(record) {
 // 2. Authenticate silently to satisfy hardened Firestore Rules
 auth.signInAnonymously()
   .then(() => {
-    // Start listening once authenticated
     utangCol.onSnapshot((snapshot) => {
       records = [];
       snapshot.forEach((doc) => {
