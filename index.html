@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palista Muna - Digital Kwaderno</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-badge">⚡ DIGITAL KWADERNO</div>
+        <h1 class="brand-title">PALISTA <span>MUNA</span></h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" id="btn-export">I-export (CSV)</button>
+        <button class="btn btn-primary" id="btn-open-add">+ Maglista ng Utang</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Analytics Grid -->
+    <section class="metrics-grid">
+      <div class="card metric-card">
+        <span class="metric-label">Dapat Singilin (Total)</span>
+        <div class="metric-val" id="total-collectible">₱0.00</div>
+        <span class="metric-sub" id="active-suki-count">0 suki ang may utang</span>
+      </div>
+      <div class="card metric-card alert-card">
+        <span class="metric-label">Lagpas na sa Due Date</span>
+        <div class="metric-val text-danger" id="total-overdue">₱0.00</div>
+        <span class="metric-sub text-danger" id="overdue-count">0 ang overdue</span>
+      </div>
+      <div class="card metric-card">
+        <span class="metric-label">Nasingil Ngayong Buwan</span>
+        <div class="metric-val text-accent" id="total-collected">₱0.00</div>
+        <span class="metric-sub">Pumasok sa kaha</span>
+      </div>
+    </section>
+
+    <!-- Controls Bar -->
+    <section class="controls-bar">
+      <div class="filter-tabs">
+        <button class="tab-btn active" data-filter="all">Lahat (<span id="count-all">0</span>)</button>
+        <button class="tab-btn" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
+        <button class="tab-btn" data-filter="pending">Aktibo (<span id="count-pending">0</span>)</button>
+        <button class="tab-btn" data-filter="settled">Bayad Na (<span id="count-settled">0</span>)</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Maghanap ng pangalan o cellphone...">
+      </div>
+    </section>
+
+    <!-- Ledger Table -->
+    <section class="card table-card">
+      <div class="table-responsive">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Pangalan ng Suki</th>
+              <th>Binili / Talaan</th>
+              <th>Balanse</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th style="text-align: right;">Aksyon</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-body">
+            <!-- Dynamically populated via app.js -->
+          </tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="empty-state hidden">
+        <p>Walang listahan na tumutugma sa filter.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Add Utang -->
+  <div class="modal-overlay hidden" id="modal-add">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>+ Bagong Listang Utang</h3>
+        <button class="btn-close" id="btn-close-add">&times;</button>
+      </div>
+      <form id="form-add">
+        <div class="form-group">
+          <label>Pangalan ng Suki *</label>
+          <input type="text" id="add-name" placeholder="Hal. Kapitbahay Nena" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cellphone Number *</label>
+            <input type="tel" id="add-phone" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
+          </div>
+          <div class="form-group">
+            <label>Halaga (₱) *</label>
+            <input type="number" id="add-amount" placeholder="0.00" min="1" step="any" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Mga Binili (Items list)</label>
+          <input type="text" id="add-items" placeholder="Hal. 2 Sardinas, 1 Mantika, 3 Lucky Me">
+        </div>
+        <div class="form-group">
+          <label>Due Date (Petsa ng Bayaran) *</label>
+          <div class="quick-presets">
+            <button type="button" class="btn-preset" data-days="7">+7 Araw</button>
+            <button type="button" class="btn-preset" data-preset="15th">Katapusan (15th)</button>
+            <button type="button" class="btn-preset" data-preset="30th">Katapusan (30th)</button>
+          </div>
+          <input type="date" id="add-due-date" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-add">Kanselahin</button>
+          <button type="submit" class="btn btn-primary">Ilista Na</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Partial Payment -->
+  <div class="modal-overlay hidden" id="modal-payment">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Magbayad ng Utang</h3>
+        <button class="btn-close" id="btn-close-payment">&times;</button>
+      </div>
+      <form id="form-payment">
+        <input type="hidden" id="pay-id">
+        <div class="pay-summary">
+          <div class="pay-name" id="pay-name">---</div>
+          <div class="pay-balance-label">Kasalukuyang Balanse: <span id="pay-balance" class="text-accent">₱0.00</span></div>
+        </div>
+        <div class="form-group">
+          <label>Halaga ng Ibinayad (₱) *</label>
+          <input type="number" id="pay-amount" placeholder="0.00" min="1" step="any" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-pay">Kanselahin</button>
+          <button type="submit" class="btn btn-primary">Itala ang Bayad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Send Reminder -->
+  <div class="modal-overlay hidden" id="modal-reminder">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Magpadala ng Paalala (SMS)</h3>
+        <button class="btn-close" id="btn-close-reminder">&times;</button>
+      </div>
+      <div class="reminder-body">
+        <p class="reminder-to">Ipapadala kay: <strong id="remind-name">---</strong> (<span id="remind-phone">---</span>)</p>
+        <label>Mensahe (Maaaring baguhin):</label>
+        <textarea id="remind-text" rows="5"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-copy-sms">Kopyahin Mensahe</button>
+        <a id="btn-trigger-sms" class="btn btn-primary" href="#">Buksan sa SMS App</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden">Mensahe nakopya!</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
