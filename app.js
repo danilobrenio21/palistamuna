@@ -3,31 +3,32 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(console.error);
 }
 
-// Default Seed Data
-const DEFAULT_RECORDS = [
-  {
-    id: "rec-1",
-    name: "Aling Marites",
-    phone: "09171234567",
-    items: "1 Rice (5kg), 2 Canned Tuna, 1 Cooking Oil",
-    amount: 540,
-    paid: 100,
-    dueDate: "2026-04-05"
-  },
-  {
-    id: "rec-2",
-    name: "Kuya Jun Jun",
-    phone: "09289876543",
-    items: "5 Beers, 1 Snack Pack",
-    amount: 650,
-    paid: 0,
-    dueDate: "2026-04-15"
+// 1. Firebase Initialization with your project credentials
+const firebaseConfig = {
+  apiKey: "AIzaSyDoI1aKjSNnvLpWbpWcjFHVCdLcuWD4MaI",
+  authDomain: "palistamuna-d2bb1.firebaseapp.com",
+  projectId: "palistamuna-d2bb1",
+  storageBucket: "palistamuna-d2bb1.firebasestorage.app",
+  messagingSenderId: "1076687838949",
+  appId: "1:1076687838949:web:8d31ae67f7d429da2f7e0c"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Offline persistence so records work without signal
+db.enablePersistence().catch((err) => {
+  if (err.code !== 'failed-precondition') {
+    console.warn("Persistence error:", err);
   }
-];
+});
+
+const utangCol = db.collection("records");
+const settingsDoc = db.collection("config").doc("store_settings");
 
 // App State
-let records = JSON.parse(localStorage.getItem("palista_records")) || DEFAULT_RECORDS;
-let settings = JSON.parse(localStorage.getItem("palista_settings")) || {
+let records = [];
+let settings = {
   storeName: "Tindahan",
   gcash: "",
   maya: ""
@@ -52,11 +53,6 @@ const modalReminder = document.getElementById("modal-reminder");
 const modalSettings = document.getElementById("modal-settings");
 const toast = document.getElementById("toast");
 
-function saveRecords() {
-  localStorage.setItem("palista_records", JSON.stringify(records));
-  renderLedger();
-}
-
 function showToast(msg) {
   toast.innerText = msg;
   toast.classList.remove("hidden");
@@ -64,11 +60,29 @@ function showToast(msg) {
 }
 
 function getRecordStatus(record) {
-  const balance = record.amount - record.paid;
+  const balance = record.amount - (record.paid || 0);
   if (balance <= 0) return "settled";
   const today = new Date().toISOString().split("T")[0];
   return record.dueDate < today ? "overdue" : "pending";
 }
+
+// Realtime Cloud Listener for Records
+utangCol.onSnapshot((snapshot) => {
+  records = [];
+  snapshot.forEach((doc) => {
+    records.push({ id: doc.id, ...doc.data() });
+  });
+  renderLedger();
+}, (err) => {
+  console.error("Firestore listen error:", err);
+});
+
+// Realtime Cloud Listener for Settings
+settingsDoc.onSnapshot((doc) => {
+  if (doc.exists) {
+    settings = doc.data();
+  }
+});
 
 function renderLedger() {
   const query = searchInput.value.toLowerCase();
@@ -84,7 +98,7 @@ function renderLedger() {
 
   const filtered = records.filter(r => {
     const status = getRecordStatus(r);
-    const balance = r.amount - r.paid;
+    const balance = r.amount - (r.paid || 0);
 
     counts[status]++;
     if (balance > 0) {
@@ -96,10 +110,10 @@ function renderLedger() {
         pendingCount++;
       }
     }
-    totalCollected += r.paid;
+    totalCollected += (r.paid || 0);
 
     const matchesFilter = (activeFilter === "all" || status === activeFilter);
-    const matchesSearch = r.name.toLowerCase().includes(query) || r.phone.includes(query);
+    const matchesSearch = (r.name || "").toLowerCase().includes(query) || (r.phone || "").includes(query);
     return matchesFilter && matchesSearch;
   });
 
@@ -122,7 +136,7 @@ function renderLedger() {
   emptyState.classList.add("hidden");
 
   filtered.forEach(r => {
-    const balance = r.amount - r.paid;
+    const balance = r.amount - (r.paid || 0);
     const status = getRecordStatus(r);
     const tr = document.createElement("tr");
 
@@ -137,7 +151,7 @@ function renderLedger() {
       <td>${r.items || "—"}</td>
       <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">
         ₱${balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
-        ${r.paid > 0 ? `<div style="font-size: 11px; color: var(--text-muted)">Paid: ₱${r.paid}</div>` : ''}
+        ${(r.paid || 0) > 0 ? `<div style="font-size: 11px; color: var(--text-muted)">Paid: ₱${r.paid}</div>` : ''}
       </td>
       <td>${r.dueDate}</td>
       <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
@@ -153,7 +167,7 @@ function renderLedger() {
   });
 }
 
-// Preset Handlers
+// Quick Preset Buttons
 document.querySelectorAll(".btn-preset").forEach(btn => {
   btn.addEventListener("click", () => {
     const today = new Date();
@@ -181,16 +195,21 @@ document.getElementById("btn-open-settings").addEventListener("click", () => {
 document.getElementById("btn-close-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
 document.getElementById("btn-cancel-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
 
-document.getElementById("form-settings").addEventListener("submit", (e) => {
+document.getElementById("form-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
-  settings = {
+  const updatedSettings = {
     storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
     gcash: document.getElementById("setting-gcash").value.trim(),
     maya: document.getElementById("setting-maya").value.trim()
   };
-  localStorage.setItem("palista_settings", JSON.stringify(settings));
-  modalSettings.classList.add("hidden");
-  showToast("Settings updated!");
+
+  try {
+    await settingsDoc.set(updatedSettings);
+    modalSettings.classList.add("hidden");
+    showToast("Settings saved to cloud!");
+  } catch (err) {
+    alert("Error saving settings: " + err.message);
+  }
 });
 
 // Add Record Handlers
@@ -198,30 +217,33 @@ document.getElementById("btn-open-add").addEventListener("click", () => modalAdd
 document.getElementById("btn-close-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
 document.getElementById("btn-cancel-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
 
-document.getElementById("form-add").addEventListener("submit", (e) => {
+document.getElementById("form-add").addEventListener("submit", async (e) => {
   e.preventDefault();
   const newRec = {
-    id: "rec-" + Date.now(),
     name: document.getElementById("add-name").value.trim(),
     phone: document.getElementById("add-phone").value.trim(),
     amount: parseFloat(document.getElementById("add-amount").value),
     paid: 0,
     items: document.getElementById("add-items").value.trim(),
-    dueDate: document.getElementById("add-due-date").value
+    dueDate: document.getElementById("add-due-date").value,
+    createdAt: new Date().toISOString()
   };
 
-  records.unshift(newRec);
-  saveRecords();
-  modalAdd.classList.add("hidden");
-  e.target.reset();
-  showToast("Record successfully added!");
+  try {
+    await utangCol.add(newRec);
+    modalAdd.classList.add("hidden");
+    e.target.reset();
+    showToast("Saved to Firebase Cloud!");
+  } catch (err) {
+    alert("Error saving record: " + err.message);
+  }
 });
 
 // Payment Handlers
 window.openPayment = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
-  const balance = record.amount - record.paid;
+  const balance = record.amount - (record.paid || 0);
 
   document.getElementById("pay-id").value = record.id;
   document.getElementById("pay-name").innerText = record.name;
@@ -234,34 +256,36 @@ window.openPayment = function(id) {
 document.getElementById("btn-close-payment").addEventListener("click", () => modalPayment.classList.add("hidden"));
 document.getElementById("btn-cancel-pay").addEventListener("click", () => modalPayment.classList.add("hidden"));
 
-document.getElementById("form-payment").addEventListener("submit", (e) => {
+document.getElementById("form-payment").addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("pay-id").value;
   const payAmt = parseFloat(document.getElementById("pay-amount").value);
+  const record = records.find(r => r.id === id);
 
-  records = records.map(r => {
-    if (r.id === id) {
-      return { ...r, paid: r.paid + payAmt };
-    }
-    return r;
-  });
+  if (!record) return;
 
-  saveRecords();
-  modalPayment.classList.add("hidden");
-  showToast("Payment recorded successfully!");
+  try {
+    await utangCol.doc(id).update({
+      paid: (record.paid || 0) + payAmt
+    });
+    modalPayment.classList.add("hidden");
+    showToast("Payment recorded!");
+  } catch (err) {
+    alert("Error recording payment: " + err.message);
+  }
 });
 
 // Reminder Handlers
 window.openReminder = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
-  const balance = record.amount - record.paid;
+  const balance = record.amount - (record.paid || 0);
 
   let paymentDetails = "";
   if (settings.gcash) paymentDetails += `\nGCash: ${settings.gcash}`;
   if (settings.maya) paymentDetails += `\nMaya: ${settings.maya}`;
 
-  const msg = `Good day ${record.name}! This is a reminder from ${settings.storeName} regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}.${paymentDetails ? '\n\nYou may send payment via:' + paymentDetails : ''}\n\nThank you!`;
+  const msg = `Good day ${record.name}! This is a reminder from ${settings.storeName || 'Tindahan'} regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}.${paymentDetails ? '\n\nYou may send payment via:' + paymentDetails : ''}\n\nThank you!`;
 
   document.getElementById("remind-name").innerText = record.name;
   document.getElementById("remind-phone").innerText = record.phone;
@@ -281,11 +305,14 @@ document.getElementById("btn-copy-sms").addEventListener("click", () => {
 });
 
 // Delete Record
-window.deleteRecord = function(id) {
+window.deleteRecord = async function(id) {
   if (confirm("Are you sure you want to delete this record?")) {
-    records = records.filter(r => r.id !== id);
-    saveRecords();
-    showToast("Record deleted.");
+    try {
+      await utangCol.doc(id).delete();
+      showToast("Record deleted from cloud.");
+    } catch (err) {
+      alert("Error deleting record: " + err.message);
+    }
   }
 };
 
@@ -305,7 +332,7 @@ searchInput.addEventListener("input", renderLedger);
 document.getElementById("btn-export").addEventListener("click", () => {
   let csv = "Customer Name,Phone,Items,Total Amount,Balance,Due Date,Status\n";
   records.forEach(r => {
-    const bal = r.amount - r.paid;
+    const bal = r.amount - (r.paid || 0);
     csv += `"${r.name}","${r.phone}","${r.items || ''}",${r.amount},${bal},${r.dueDate},${getRecordStatus(r)}\n`;
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -315,6 +342,3 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.download = `PalistaMuna_${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
 });
-
-// Initialize
-renderLedger();
