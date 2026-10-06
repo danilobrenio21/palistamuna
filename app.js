@@ -3,7 +3,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(console.error);
 }
 
-// 1. Firebase Initialization with your project credentials
+// 1. Firebase Initialization
 const firebaseConfig = {
   apiKey: "AIzaSyDoI1aKjSNnvLpWbpWcjFHVCdLcuWD4MaI",
   authDomain: "palistamuna-d2bb1.firebaseapp.com",
@@ -24,8 +24,10 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   }
 });
 
-const utangCol = db.collection("records");
-const settingsDoc = db.collection("config").doc("store_settings");
+// User-scoped references (initialized after auth)
+let utangCol = null;
+let settingsDoc = null;
+let currentUser = null;
 
 // Philippine Product Barcode Catalog
 const BARCODE_CATALOG = {
@@ -80,9 +82,14 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// 2. Authenticate silently to satisfy hardened Firestore Rules
-auth.signInAnonymously()
-  .then(() => {
+// 2. Authenticate and listen to user-isolated collection
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    currentUser = user;
+    // Each tester/device gets their own private path: users/{uid}/records
+    utangCol = db.collection("users").doc(user.uid).collection("records");
+    settingsDoc = db.collection("users").doc(user.uid).collection("config").doc("store_settings");
+
     utangCol.onSnapshot((snapshot) => {
       records = [];
       snapshot.forEach((doc) => {
@@ -99,11 +106,13 @@ auth.signInAnonymously()
         settings = doc.data();
       }
     });
-  })
-  .catch((error) => {
-    console.error("Auth initialization failed:", error);
-    showToast("Auth initialization issue. Check Firebase Auth settings.");
-  });
+  } else {
+    auth.signInAnonymously().catch((error) => {
+      console.error("Auth initialization failed:", error);
+      showToast("Auth initialization issue. Check Firebase Auth settings.");
+    });
+  }
+});
 
 function renderLedger() {
   const query = searchInput.value.toLowerCase();
@@ -187,7 +196,6 @@ function renderLedger() {
   });
 }
 
-// Suki Profiles Aggregation
 function renderSukiDirectory() {
   sukiBody.innerHTML = "";
   const customers = {};
@@ -365,6 +373,8 @@ document.getElementById("btn-cancel-settings").addEventListener("click", () => m
 
 document.getElementById("form-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!settingsDoc) return;
+
   const updatedSettings = {
     storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
     gcash: document.getElementById("setting-gcash").value.trim(),
@@ -374,7 +384,7 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
   try {
     await settingsDoc.set(updatedSettings);
     modalSettings.classList.add("hidden");
-    showToast("Settings saved to cloud!");
+    showToast("Settings saved to private cloud!");
   } catch (err) {
     alert("Error saving settings: " + err.message);
   }
@@ -393,6 +403,8 @@ document.getElementById("btn-cancel-add").addEventListener("click", () => {
 
 document.getElementById("form-add").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!utangCol) return;
+
   const newRec = {
     name: document.getElementById("add-name").value.trim(),
     phone: document.getElementById("add-phone").value.trim(),
@@ -408,7 +420,7 @@ document.getElementById("form-add").addEventListener("submit", async (e) => {
     stopScanner();
     modalAdd.classList.add("hidden");
     e.target.reset();
-    showToast("Saved securely to Cloud!");
+    showToast("Saved to your private ledger!");
   } catch (err) {
     alert("Error saving record: " + err.message);
   }
@@ -433,6 +445,8 @@ document.getElementById("btn-cancel-pay").addEventListener("click", () => modalP
 
 document.getElementById("form-payment").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!utangCol) return;
+
   const id = document.getElementById("pay-id").value;
   const payAmt = parseFloat(document.getElementById("pay-amount").value);
   const record = records.find(r => r.id === id);
@@ -481,6 +495,7 @@ document.getElementById("btn-copy-sms").addEventListener("click", () => {
 
 // Delete Record
 window.deleteRecord = async function(id) {
+  if (!utangCol) return;
   if (confirm("Are you sure you want to delete this record?")) {
     try {
       await utangCol.doc(id).delete();
