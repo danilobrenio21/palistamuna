@@ -16,7 +16,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Offline persistence so records work without signal
+// Offline persistence
 db.enablePersistence().catch((err) => {
   if (err.code !== 'failed-precondition') {
     console.warn("Persistence error:", err);
@@ -26,17 +26,26 @@ db.enablePersistence().catch((err) => {
 const utangCol = db.collection("records");
 const settingsDoc = db.collection("config").doc("store_settings");
 
+// Philippine Product Barcode Catalog (Expandable)
+const BARCODE_CATALOG = {
+  "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
+  "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
+  "4801981110034": { name: "555 Sardines in Tomato Sauce 155g", price: 26 },
+  "4800016054111": { name: "Mega Sardines Red 155g", price: 28 },
+  "4800110024447": { name: "San Miguel Pale Pilsen 330ml", price: 65 },
+  "4800016643018": { name: "Lucky Me Beef Mami", price: 15 }
+};
+
 // App State
 let records = [];
-let settings = {
-  storeName: "Tindahan",
-  gcash: "",
-  maya: ""
-};
+let settings = { storeName: "Tindahan", gcash: "", maya: "" };
 let activeFilter = "all";
+let currentView = "ledger"; // "ledger" or "suki"
+let html5QrCode = null;
 
 // DOM Elements
 const ledgerBody = document.getElementById("ledger-body");
+const sukiBody = document.getElementById("suki-body");
 const emptyState = document.getElementById("empty-state");
 const totalCollectibleEl = document.getElementById("total-collectible");
 const totalOverdueEl = document.getElementById("total-overdue");
@@ -45,6 +54,10 @@ const activeSukiEl = document.getElementById("active-suki-count");
 const overdueCountEl = document.getElementById("overdue-count");
 const searchInput = document.getElementById("search-input");
 const filterTabs = document.querySelectorAll(".tab-btn");
+
+const sectionLedger = document.getElementById("section-ledger");
+const sectionSuki = document.getElementById("section-suki");
+const btnToggleView = document.getElementById("btn-toggle-view");
 
 // Modals
 const modalAdd = document.getElementById("modal-add");
@@ -73,6 +86,7 @@ utangCol.onSnapshot((snapshot) => {
     records.push({ id: doc.id, ...doc.data() });
   });
   renderLedger();
+  renderSukiDirectory();
 }, (err) => {
   console.error("Firestore listen error:", err);
 });
@@ -117,7 +131,6 @@ function renderLedger() {
     return matchesFilter && matchesSearch;
   });
 
-  // Update Counters
   document.getElementById("count-all").innerText = counts.all;
   document.getElementById("count-overdue").innerText = counts.overdue;
   document.getElementById("count-pending").innerText = counts.pending;
@@ -167,8 +180,156 @@ function renderLedger() {
   });
 }
 
-// Quick Preset Buttons
-document.querySelectorAll(".btn-preset").forEach(btn => {
+// 2. Customer Directory / Suki Profile Aggregation
+function renderSukiDirectory() {
+  sukiBody.innerHTML = "";
+  const customers = {};
+
+  records.forEach(r => {
+    const key = (r.phone || r.name).trim();
+    if (!customers[key]) {
+      customers[key] = {
+        name: r.name,
+        phone: r.phone,
+        totalBalance: 0,
+        totalPaid: 0,
+        overdueCount: 0,
+        totalRecords: 0
+      };
+    }
+    const balance = r.amount - (r.paid || 0);
+    customers[key].totalBalance += balance;
+    customers[key].totalPaid += (r.paid || 0);
+    customers[key].totalRecords += 1;
+
+    if (getRecordStatus(r) === "overdue") {
+      customers[key].overdueCount += 1;
+    }
+  });
+
+  const sukiList = Object.values(customers);
+
+  if (sukiList.length === 0) {
+    sukiBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted)">No customer profiles accumulated yet.</td></tr>`;
+    return;
+  }
+
+  sukiList.forEach(c => {
+    let scoreBadge = `<span class="badge badge-active">Good Payer (Suki)</span>`;
+    if (c.overdueCount >= 2) {
+      scoreBadge = `<span class="badge badge-overdue">High Risk (Delinquent)</span>`;
+    } else if (c.overdueCount === 1) {
+      scoreBadge = `<span class="badge" style="background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid rgba(255, 170, 0, 0.3);">Follow-Up Needed</span>`;
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div class="suki-name">${c.name}</div>
+        <div class="suki-phone">${c.phone}</div>
+      </td>
+      <td>${scoreBadge}</td>
+      <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${c.totalBalance > 0 ? '#ff3366' : 'var(--accent)'}">
+        ₱${c.totalBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}
+      </td>
+      <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted)">
+        ₱${c.totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}
+      </td>
+      <td>${c.totalRecords} credit entries</td>
+    `;
+    sukiBody.appendChild(tr);
+  });
+}
+
+// Toggle Views (Ledger vs Suki Directory)
+btnToggleView.addEventListener("click", () => {
+  if (currentView === "ledger") {
+    currentView = "suki";
+    sectionLedger.classList.add("hidden");
+    sectionSuki.classList.remove("hidden");
+    btnToggleView.innerText = "📋 View Ledger";
+    renderSukiDirectory();
+  } else {
+    currentView = "ledger";
+    sectionSuki.classList.add("hidden");
+    sectionLedger.classList.remove("hidden");
+    btnToggleView.innerText = "👥 Suki Directory";
+    renderLedger();
+  }
+});
+
+// 3. Quick Item Tally Buttons Handlers
+document.querySelectorAll(".tally-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const itemName = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+
+    const amountInput = document.getElementById("add-amount");
+    const itemsInput = document.getElementById("add-items");
+
+    const currentAmt = parseFloat(amountInput.value) || 0;
+    amountInput.value = (currentAmt + price).toFixed(2);
+
+    if (itemsInput.value.trim().length > 0) {
+      itemsInput.value += `, ${itemName}`;
+    } else {
+      itemsInput.value = itemName;
+    }
+  });
+});
+
+// 4. Camera Barcode Scanner Integration
+const btnToggleScanner = document.getElementById("btn-toggle-scanner");
+const btnStopScanner = document.getElementById("btn-stop-scanner");
+const scannerWrapper = document.getElementById("scanner-wrapper");
+
+btnToggleScanner.addEventListener("click", () => {
+  scannerWrapper.classList.remove("hidden");
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+
+  const qrConfig = { fps: 10, qrbox: { width: 250, height: 150 } };
+  html5QrCode.start(
+    { facingMode: "environment" },
+    qrConfig,
+    (decodedText) => {
+      const product = BARCODE_CATALOG[decodedText];
+      const amountInput = document.getElementById("add-amount");
+      const itemsInput = document.getElementById("add-items");
+
+      if (product) {
+        const curAmt = parseFloat(amountInput.value) || 0;
+        amountInput.value = (curAmt + product.price).toFixed(2);
+        itemsInput.value = itemsInput.value ? `${itemsInput.value}, ${product.name}` : product.name;
+        showToast(`Scanned: ${product.name} (+₱${product.price})`);
+      } else {
+        itemsInput.value = itemsInput.value ? `${itemsInput.value}, Barcode: ${decodedText}` : `Barcode: ${decodedText}`;
+        showToast(`Barcode scanned: ${decodedText}`);
+      }
+      stopScanner();
+    },
+    () => {}
+  ).catch(err => {
+    alert("Camera permission denied or camera not found: " + err);
+    scannerWrapper.classList.add("hidden");
+  });
+});
+
+function stopScanner() {
+  if (html5QrCode && html5QrCode.isScanning) {
+    html5QrCode.stop().then(() => {
+      scannerWrapper.classList.add("hidden");
+    }).catch(console.error);
+  } else {
+    scannerWrapper.classList.add("hidden");
+  }
+}
+
+btnStopScanner.addEventListener("click", stopScanner);
+
+// Quick Due Date Presets
+document.querySelectorAll(".btn-preset:not(.tally-btn)").forEach(btn => {
   btn.addEventListener("click", () => {
     const today = new Date();
     if (btn.dataset.days) {
@@ -214,8 +375,14 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
 
 // Add Record Handlers
 document.getElementById("btn-open-add").addEventListener("click", () => modalAdd.classList.remove("hidden"));
-document.getElementById("btn-close-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
-document.getElementById("btn-cancel-add").addEventListener("click", () => modalAdd.classList.add("hidden"));
+document.getElementById("btn-close-add").addEventListener("click", () => {
+  stopScanner();
+  modalAdd.classList.add("hidden");
+});
+document.getElementById("btn-cancel-add").addEventListener("click", () => {
+  stopScanner();
+  modalAdd.classList.add("hidden");
+});
 
 document.getElementById("form-add").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -231,6 +398,7 @@ document.getElementById("form-add").addEventListener("submit", async (e) => {
 
   try {
     await utangCol.add(newRec);
+    stopScanner();
     modalAdd.classList.add("hidden");
     e.target.reset();
     showToast("Saved to Firebase Cloud!");

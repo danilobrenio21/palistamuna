@@ -25,6 +25,7 @@
         <h1 class="brand-title">PALISTA <span>MUNA</span></h1>
       </div>
       <div class="header-actions">
+        <button class="btn btn-secondary" id="btn-toggle-view">👥 Suki Directory</button>
         <button class="btn btn-secondary" id="btn-open-settings">⚙️ Settings</button>
         <button class="btn btn-secondary" id="btn-export">Export (CSV)</button>
         <button class="btn btn-primary" id="btn-open-add">+ Add Record</button>
@@ -52,42 +53,67 @@
       </div>
     </section>
 
-    <!-- Controls Bar -->
-    <section class="controls-bar">
-      <div class="filter-tabs">
-        <button class="tab-btn active" data-filter="all">All (<span id="count-all">0</span>)</button>
-        <button class="tab-btn" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
-        <button class="tab-btn" data-filter="pending">Active (<span id="count-pending">0</span>)</button>
-        <button class="tab-btn" data-filter="settled">Settled (<span id="count-settled">0</span>)</button>
-      </div>
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="Search customer name or phone...">
-      </div>
-    </section>
+    <!-- Ledger View Section -->
+    <div id="section-ledger">
+      <!-- Controls Bar -->
+      <section class="controls-bar">
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="all">All (<span id="count-all">0</span>)</button>
+          <button class="tab-btn" data-filter="overdue">Overdue (<span id="count-overdue">0</span>)</button>
+          <button class="tab-btn" data-filter="pending">Active (<span id="count-pending">0</span>)</button>
+          <button class="tab-btn" data-filter="settled">Settled (<span id="count-settled">0</span>)</button>
+        </div>
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Search customer name or phone...">
+        </div>
+      </section>
 
-    <!-- Ledger Table -->
-    <section class="card table-card">
-      <div class="table-responsive">
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th>Customer Name</th>
-              <th>Items / Details</th>
-              <th>Balance</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th style="text-align: right;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="ledger-body">
-            <!-- Dynamically populated via app.js -->
-          </tbody>
-        </table>
-      </div>
-      <div id="empty-state" class="empty-state hidden">
-        <p>No records match the current filter.</p>
-      </div>
-    </section>
+      <!-- Ledger Table -->
+      <section class="card table-card">
+        <div class="table-responsive">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Customer Name</th>
+                <th>Items / Details</th>
+                <th>Balance</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-body"></tbody>
+          </table>
+        </div>
+        <div id="empty-state" class="empty-state hidden">
+          <p>No records match the current filter.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Suki Directory View Section -->
+    <div id="section-suki" class="hidden">
+      <section class="card table-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.1rem; font-weight: 700;">Customer Directory & Suki Profiles</h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted)">Lifetime Credit & Reliability Analysis</span>
+        </div>
+        <div class="table-responsive">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Customer / Contact</th>
+                <th>Reliability Score</th>
+                <th>Active Balance</th>
+                <th>Lifetime Settled</th>
+                <th>Total Records</th>
+              </tr>
+            </thead>
+            <tbody id="suki-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- Modal: Store & Payment Settings -->
@@ -118,9 +144,9 @@
     </div>
   </div>
 
-  <!-- Modal: Add Record -->
+  <!-- Modal: Add Record with Quick Tally & Barcode Scanner -->
   <div class="modal-overlay hidden" id="modal-add">
-    <div class="modal-content">
+    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
         <h3>+ Add Credit Record</h3>
         <button class="btn-close" id="btn-close-add">&times;</button>
@@ -140,10 +166,32 @@
             <input type="number" id="add-amount" placeholder="0.00" min="1" step="any" required>
           </div>
         </div>
+
+        <!-- Quick Item Tally -->
         <div class="form-group">
-          <label>Items Purchased</label>
-          <input type="text" id="add-items" placeholder="e.g. 2 Canned Tuna, 1 Cooking Oil">
+          <label>Quick Tally Presets (Click to add amount & items)</label>
+          <div class="quick-presets" style="flex-wrap: wrap;">
+            <button type="button" class="btn-preset tally-btn" data-name="1kg Bigas" data-price="55">+₱55 Bigas (1kg)</button>
+            <button type="button" class="btn-preset tally-btn" data-name="Lucky Me Pancit Canton" data-price="18">+₱18 Canton</button>
+            <button type="button" class="btn-preset tally-btn" data-name="Canned Sardines" data-price="25">+₱25 Sardinas</button>
+            <button type="button" class="btn-preset tally-btn" data-name="Softdrink 1.5L" data-price="70">+₱70 Softdrink</button>
+            <button type="button" class="btn-preset tally-btn" data-name="Egg (1pc)" data-price="9">+₱9 Itlog</button>
+          </div>
         </div>
+
+        <!-- Barcode Scanner Trigger & Viewport -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label style="margin: 0;">Items Purchased</label>
+            <button type="button" class="btn btn-secondary" id="btn-toggle-scanner" style="padding: 4px 8px; font-size: 11px;">📷 Scan Barcode</button>
+          </div>
+          <div id="scanner-wrapper" class="hidden" style="margin-bottom: 10px; background: #000; border-radius: 8px; overflow: hidden;">
+            <div id="reader" style="width: 100%;"></div>
+            <button type="button" class="btn btn-secondary" id="btn-stop-scanner" style="width: 100%; border-radius: 0;">Stop Scanner</button>
+          </div>
+          <input type="text" id="add-items" placeholder="Items will auto-fill or enter manually">
+        </div>
+
         <div class="form-group">
           <label>Due Date *</label>
           <div class="quick-presets">
@@ -206,6 +254,9 @@
   </div>
 
   <div id="toast" class="toast hidden">Message copied to clipboard!</div>
+
+  <!-- Barcode Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
