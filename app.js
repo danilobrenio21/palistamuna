@@ -26,7 +26,7 @@ let utangCol = null;
 let settingsDoc = null;
 let currentUser = null;
 
-// Product Barcode Catalog
+// Product Catalog
 const BARCODE_CATALOG = {
   "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
   "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
@@ -61,12 +61,14 @@ const sectionSuki = document.getElementById("section-suki");
 const btnToggleView = document.getElementById("btn-toggle-view");
 const btnToggleText = document.getElementById("btn-toggle-text");
 
-// Modals & Panels
+// Modals
 const modalAdd = document.getElementById("modal-add");
 const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
 const modalSettings = document.getElementById("modal-settings");
 const modalClosing = document.getElementById("modal-closing");
+const modalPrivacy = document.getElementById("modal-privacy");
+const printableContract = document.getElementById("printable-contract");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
 
@@ -83,27 +85,32 @@ const tourSteps = [
   {
     targetId: null,
     title: "Maligayang Pagdating sa Palista Muna!",
-    desc: "Mag-quick tour tayo para malaman kung paano gamitin ang bawat button para iwas-lugi ang tindahan."
+    desc: "Gabay ito kung paano gamitin ang bawat button para protektado at hindi malugi ang tindahan."
   },
   {
     targetId: "btn-open-add",
     title: "+ Add Record Button",
-    desc: "Dito ka magtatala ng bagong pautang. May Quick Tally (+₱55 Bigas, +₱18 Canton) at barcode scanner camera para mabilis maglista!"
+    desc: "Dito ka magtatala ng bagong pautang. Pwede kang maglagay ng sariling credit limit bawat borrower para iwas-lugi!"
   },
   {
     targetId: "btn-toggle-view",
     title: "Suki Directory",
-    desc: "I-click ito para makita ang credit reliability score ng mga customer (Good Payer, Follow-Up Needed, o High Risk)."
+    desc: "I-click ito para makita ang credit reliability score ng bawat customer (Good Payer, Follow-Up Needed, o High Risk)."
+  },
+  {
+    targetId: "btn-open-contract",
+    title: "Print Agreement Form",
+    desc: "I-click ito para mag-print ng opisyal na kasunduan na lalagdaan ng umuutang (may kasamang Data Privacy consent)."
   },
   {
     targetId: "btn-open-closing",
     title: "Daily Closing Summary",
-    desc: "Pagpatak ng gabi, i-click ito para sa buong summary ng nasingil mo ngayong araw at sino ang dapat singilin bukas."
+    desc: "Pagpatak ng gabi, i-click ito para sa buong tally ng nasingil mo ngayong araw at sino ang dapat singilin bukas."
   },
   {
     targetId: "btn-open-settings",
     title: "Settings & Security PIN",
-    desc: "Dito mo ilalagay ang iyong GCash/Maya number para sa SMS reminder, 4-digit security PIN lock, at credit limit."
+    desc: "Dito mo ilalagay ang GCash/Maya details, 4-digit security PIN lock, at store name."
   }
 ];
 
@@ -168,9 +175,7 @@ window.handlePinInput = function(num) {
   if (enteredPin.length < 4) {
     enteredPin += num;
     updatePinDots();
-    if (enteredPin.length === 4) {
-      setTimeout(verifyPin, 100);
-    }
+    if (enteredPin.length === 4) setTimeout(verifyPin, 100);
   }
 };
 
@@ -226,6 +231,7 @@ auth.onAuthStateChanged((user) => {
       if (doc.exists) {
         settings = doc.data();
         checkPinRequired();
+        document.getElementById("print-store-name").innerText = settings.storeName || "Tindahan";
       }
     });
   } else {
@@ -327,6 +333,7 @@ function renderSukiDirectory() {
         totalBalance: 0,
         totalPaid: 0,
         overdueCount: 0,
+        customLimit: r.manualLimit || 0,
         totalRecords: 0
       };
     }
@@ -334,6 +341,7 @@ function renderSukiDirectory() {
     customers[key].totalBalance += balance;
     customers[key].totalPaid += (r.paid || 0);
     customers[key].totalRecords += 1;
+    if (r.manualLimit) customers[key].customLimit = r.manualLimit;
 
     if (getRecordStatus(r) === "overdue") {
       customers[key].overdueCount += 1;
@@ -343,7 +351,7 @@ function renderSukiDirectory() {
   const sukiList = Object.values(customers);
 
   if (sukiList.length === 0) {
-    sukiBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted)">No customer profiles accumulated yet.</td></tr>`;
+    sukiBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted)">No customer profiles accumulated yet.</td></tr>`;
     return;
   }
 
@@ -355,6 +363,8 @@ function renderSukiDirectory() {
       scoreBadge = `<span class="badge" style="background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid rgba(255, 170, 0, 0.3);">Follow-Up Needed</span>`;
     }
 
+    const effectiveLimit = c.customLimit > 0 ? `₱${c.customLimit.toFixed(2)} (Custom)` : (settings.creditLimit > 0 ? `₱${settings.creditLimit.toFixed(2)} (Default)` : 'No Cap');
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>
@@ -365,6 +375,7 @@ function renderSukiDirectory() {
       <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${c.totalBalance > 0 ? '#ff3860' : 'var(--accent-lime)'}">
         ₱${c.totalBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}
       </td>
+      <td style="font-size: 11px; color: var(--text-muted);">${effectiveLimit}</td>
       <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted)">
         ₱${c.totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}
       </td>
@@ -412,10 +423,17 @@ document.querySelectorAll(".tally-btn").forEach(btn => {
   });
 });
 
-// Credit Limit Check
+// Per-Customer Manual Credit Limit Check
 function checkCreditLimit() {
-  const limit = parseFloat(settings.creditLimit) || 0;
-  if (limit <= 0) return;
+  const manualLimitInput = parseFloat(document.getElementById("add-manual-limit").value);
+  const defaultLimit = parseFloat(settings.creditLimit) || 0;
+  
+  // Prioritize manual customer limit if given, otherwise fall back to store default limit
+  const activeLimit = !isNaN(manualLimitInput) && manualLimitInput > 0 ? manualLimitInput : defaultLimit;
+  if (activeLimit <= 0) {
+    document.getElementById("credit-limit-warning").classList.add("hidden");
+    return;
+  }
 
   const phone = document.getElementById("add-phone").value.trim();
   const name = document.getElementById("add-name").value.trim().toLowerCase();
@@ -429,8 +447,8 @@ function checkCreditLimit() {
   });
 
   const warningEl = document.getElementById("credit-limit-warning");
-  if (existingBal + addingAmt > limit) {
-    warningEl.innerHTML = `⚠️ <strong>Babala:</strong> Lampas sa ₱${limit.toFixed(2)} limit! Total utang ni customer magiging: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
+  if (existingBal + addingAmt > activeLimit) {
+    warningEl.innerHTML = `⚠️ <strong>Babala:</strong> Lampas sa ₱${activeLimit.toFixed(2)} limit ng customer na ito! Total utang magiging: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
     warningEl.classList.remove("hidden");
   } else {
     warningEl.classList.add("hidden");
@@ -440,6 +458,7 @@ function checkCreditLimit() {
 document.getElementById("add-phone").addEventListener("input", checkCreditLimit);
 document.getElementById("add-name").addEventListener("input", checkCreditLimit);
 document.getElementById("add-amount").addEventListener("input", checkCreditLimit);
+document.getElementById("add-manual-limit").addEventListener("input", checkCreditLimit);
 
 // Barcode Scanner
 const btnToggleScanner = document.getElementById("btn-toggle-scanner");
@@ -572,6 +591,7 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
   try {
     await settingsDoc.set(updatedSettings);
     modalSettings.classList.add("hidden");
+    document.getElementById("print-store-name").innerText = updatedSettings.storeName;
     showToast("Settings saved to private cloud!");
   } catch (err) {
     alert("Error saving settings: " + err.message);
@@ -596,6 +616,8 @@ document.getElementById("form-add").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!utangCol) return;
 
+  const manualLimit = parseFloat(document.getElementById("add-manual-limit").value) || 0;
+
   const newRec = {
     name: document.getElementById("add-name").value.trim(),
     phone: document.getElementById("add-phone").value.trim(),
@@ -603,6 +625,7 @@ document.getElementById("form-add").addEventListener("submit", async (e) => {
     paid: 0,
     items: document.getElementById("add-items").value.trim(),
     dueDate: document.getElementById("add-due-date").value,
+    manualLimit: manualLimit,
     createdAt: new Date().toISOString()
   };
 
@@ -722,6 +745,22 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.click();
 });
 
+// Printable Contract Open/Close
+document.getElementById("btn-open-contract").addEventListener("click", () => {
+  printableContract.classList.remove("hidden");
+});
+document.getElementById("btn-close-print").addEventListener("click", () => {
+  printableContract.classList.add("hidden");
+});
+
+// Privacy Policy Modal
+document.getElementById("link-open-privacy").addEventListener("click", (e) => {
+  e.preventDefault();
+  modalPrivacy.classList.remove("hidden");
+});
+document.getElementById("btn-close-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
+document.getElementById("btn-ok-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
+
 // --- Onboarding Tour Logic ---
 function showTourStep(index) {
   document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
@@ -774,7 +813,6 @@ btnTourPrev.addEventListener("click", () => {
 
 btnTourSkip.addEventListener("click", endTour);
 
-// Auto-trigger tour only for first-time visitors
 window.addEventListener("DOMContentLoaded", () => {
   const isDone = localStorage.getItem("palistamuna_tour_done");
   if (!isDone) {
@@ -782,46 +820,68 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// --- Palista AI Knowledge Base & Chat Widget Logic ---
-const AI_RESPONSES = [
+// --- Expanded Conversational AI Assistant (Ate Lisa) ---
+const AI_KNOWLEDGE = [
+  // Greetings
   {
-    keywords: ["lista", "add", "maglista", "pautang", "record", "bagong"],
-    answer: "Para maglista ng bagong utang, i-click ang neon green na **'+ Add Record'** button sa itaas. Ilagay ang pangalan, phone number, halaga, at due date. Pwede ka ring mag-click ng Quick Presets (+₱55 Bigas, +₱18 Canton) o mag-scan gamit ang Barcode camera!"
+    triggers: ["hi", "hello", "kamusta", "kumusta", "magandang", "good morning", "good afternoon", "good evening", "ate lisa", "hoy"],
+    response: "Hello po! Ako si Ate Lisa, ang assistant mo sa Palista Muna. Handang tumulong para manatiling maayos, protektado, at hindi malugi ang tindahan mo! May maitutulong ba ako?"
   },
+  // Security & Safety
   {
-    keywords: ["sms", "remind", "paalala", "singil", "text"],
-    answer: "Sa tapat ng bawat customer na may utang, i-click ang **'Remind'** button. Kusang gagawa ang app ng magalang na text message na may kumpletong balanse at GCash details mo. Pindutin lang ang **'Open SMS App'** para ma-send agad!"
+    triggers: ["safe ba", "ligtas ba", "safe", "secure", "manakaw", "leak", "hacked", "nakaw", "scam"],
+    response: "Opo, 100% safe at secured ang Palista Muna! Ang bawat tindahan ay may sariling nakahiwalay (isolated) na cloud database sa Firebase. Hindi kailanman mababasa ng ibang tao o ibang tindahan ang iyong listahan. Pwede mo rin lagyan ng 4-digit PIN lock sa Settings para ikaw lang ang makakapagbukas sa phone mo!"
   },
+  // Privacy Policy & RA 10173
   {
-    keywords: ["suki", "score", "score?", "directory", "delinquent", "risk"],
-    answer: "Ang **Suki Directory** ay kusang sumusuri sa bawat customer: **'Good Payer'** kung walang overdue, **'Follow-Up Needed'** kung may 1 overdue, at **'High Risk'** kung may 2 o higit pang beses na hindi nakabayad sa petsa."
+    triggers: ["privacy", "dpa", "ra 10173", "data", "makikita ba", "binibenta ba"],
+    response: "Sumusunod ang Palista Muna sa Philippine Data Privacy Act (RA 10173). Hindi namin ibinebenta o ipinapamahagi ang contact numbers o pangalan ng mga customer mo. Ang data ay ginagamit lamang para sa iyong lehitimong listahan at SMS reminder."
   },
+  // Per-Borrower Manual Credit Limit
   {
-    keywords: ["pin", "lock", "password", "security", "code"],
-    answer: "Para lagyan ng 4-digit PIN lock ang app mo, pumunta sa **'Settings'** button sa itaas at ilagay ang iyong 4-digit code. Sa susunod na buksan mo ang app, hihingin muna ang PIN para ligtas ang iyong mga talaan!"
+    triggers: ["credit limit", "limit", "cap", "magkano limit", "custom limit", "lalampas"],
+    response: "Para mag-set ng sariling credit limit sa bawat umuutang, buksan ang **'+ Add Record'** at ilagay ang nais mong halaga sa **'Customer Specific Credit Limit (₱)'**. Halimbawa, kung naglagay ka ng ₱500, kusang magbibigay ng babala (warning banner) ang app kapag sinubukang lumagpas sa ₱500 ang utang niya!"
   },
+  // Printable Contract / Agreement Form
   {
-    keywords: ["gcash", "maya", "bayad", "payment"],
-    answer: "Pumunta sa **'Settings'** button sa itaas at i-save ang iyong GCash at Maya numbers. Awtomatiko itong isasama sa SMS reminder para madaling makabayad ang iyong mga suki."
+    triggers: ["print", "agreement", "kasunduan", "form", "papel", "pirma", "contract"],
+    response: "May printable agreement form tayo! I-click lang ang **'Print Agreement'** button sa itaas. May nakahandang pormal na Kasunduan sa Pagpapautang na may kumpletong terms, credit limit, at pirmahan ng borrower at tindahan na pwede mong i-print agad!"
   },
+  // Adding Records
   {
-    keywords: ["scanner", "barcode", "scan", "camera"],
-    answer: "Kapag nag-a-add ng utang via **'+ Add Record'**, pindutin ang **'Scan Barcode'**. Gamitin ang phone camera para itutok sa barcode ng mga bilihin gaya ng Lucky Me o Sardinas para kusa itong maidagdag sa listahan!"
+    triggers: ["paano maglista", "maglista", "add record", "magdagdag", "bagong utang", "ilista"],
+    response: "Pindutin lamang ang neon green na **'+ Add Record'** button sa itaas. Ilagay ang pangalan, active phone number, halaga, at due date. Pwede ka ring mag-click ng Quick Presets (+₱55 Bigas, +₱18 Canton) para mabilis!"
   },
+  // SMS Reminders
   {
-    keywords: ["daily", "summary", "closing", "gabi", "araw"],
-    answer: "I-click ang **'Daily Summary'** button sa itaas bago magsara ng tindahan. Makikita mo ang kabuuang nasingil at kung sinu-sinong customer ang dapat singilin bukas!"
+    triggers: ["sms", "remind", "paalala", "singilin", "maningil", "text"],
+    response: "Sa tabi ng pangalan ng may utang sa listahan, pindutin ang **'Remind'**. Kusang bubuo ang app ng magalang na text message na may kumpletong balanse at GCash/Maya number mo, at bubuksan ito sa sarili mong text messaging app para i-send."
+  },
+  // Suki Scoring
+  {
+    triggers: ["suki", "score", "delinquent", "high risk", "good payer"],
+    response: "Ang **Suki Directory** ay kusang sumusuri: **'Good Payer'** kung laging nagbabayad bago mag-due date, **'Follow-Up Needed'** kung may 1 overdue, at **'High Risk'** kung may 2 o higit pang beses na hindi nagbayad sa takdang araw."
+  },
+  // PIN code setup
+  {
+    triggers: ["pin", "password", "lock", "code"],
+    response: "I-click ang **'Settings'** button sa itaas, ilagay ang iyong gustong 4-digit PIN sa '4-Digit App PIN', at i-save. Sa susunod na buksan mo ang Palista Muna, hihingin ang PIN bago makita ang listahan."
+  },
+  // Daily Summary
+  {
+    triggers: ["daily summary", "closing", "gabi", "araw", "benta", "nasingil"],
+    response: "I-click ang **'Summary'** button sa itaas bago matulog para makita ang kabuuang nasingil mo ngayong araw at listahan kung sinu-sino ang may due date bukas para mapaghandaan ang paniningil!"
   }
 ];
 
 function getAiAnswer(input) {
   const clean = input.toLowerCase();
-  for (const item of AI_RESPONSES) {
-    if (item.keywords.some(k => clean.includes(k))) {
-      return item.answer;
+  for (const item of AI_KNOWLEDGE) {
+    if (item.triggers.some(t => clean.includes(t))) {
+      return item.response;
     }
   }
-  return "Pasensya na po, hindi ko masyadong nakuha. Maaari mong itanong: 'Paano maglista?', 'Paano gumagana ang SMS reminder?', 'Ano ang Suki Score?', o 'Paano maglagay ng 4-digit PIN?'.";
+  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong sa akin: 'Safe ba gamitin ito?', 'Paano i-set ang credit limit?', 'Paano i-print ang kasunduan?', o 'Paano maglista ng bagong pautang?'.";
 }
 
 function appendMessage(sender, text) {
@@ -837,7 +897,7 @@ window.sendQuickPrompt = function(promptText) {
   setTimeout(() => {
     const reply = getAiAnswer(promptText);
     appendMessage("bot", reply);
-  }, 400);
+  }, 350);
 };
 
 aiChatForm.addEventListener("submit", (e) => {
@@ -850,7 +910,7 @@ aiChatForm.addEventListener("submit", (e) => {
   setTimeout(() => {
     const reply = getAiAnswer(text);
     appendMessage("bot", reply);
-  }, 400);
+  }, 350);
 });
 
 aiChatBtn.addEventListener("click", () => {

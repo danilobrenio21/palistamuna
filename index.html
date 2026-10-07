@@ -68,7 +68,11 @@
         </button>
         <button class="btn btn-secondary interactive-fx" id="btn-open-closing">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          Daily Summary
+          Summary
+        </button>
+        <button class="btn btn-secondary interactive-fx" id="btn-open-contract">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 13l2 2 4-4"></path></svg>
+          Print Agreement
         </button>
         <button class="btn btn-secondary interactive-fx" id="btn-export">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -150,6 +154,7 @@
                 <th>Customer / Contact</th>
                 <th>Reliability Score</th>
                 <th>Active Balance</th>
+                <th>Credit Limit</th>
                 <th>Lifetime Settled</th>
                 <th>Total Records</th>
               </tr>
@@ -162,6 +167,9 @@
 
     <footer style="margin-top: 2.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid #1c1c24; padding-top: 1.25rem;">
       <p>Palista Muna complies with the Philippine Data Privacy Act (RA 10173). Contact details are processed securely and strictly used for merchant-to-customer SMS notices.</p>
+      <p style="margin-top: 6px;">
+        <a href="#" id="link-open-privacy" style="color: var(--accent-lime); text-decoration: underline;">Basahin ang Buong Data Privacy Policy</a>
+      </p>
     </footer>
   </main>
 
@@ -175,7 +183,7 @@
     <div class="ai-header">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span class="ai-status-dot"></span>
-        <strong>Ate Lisa (AI Assistant)</strong>
+        <strong>Ate Lisa (Palista Assistant)</strong>
       </div>
       <button id="btn-close-ai" class="btn-close interactive-fx">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -184,22 +192,102 @@
     
     <div id="ai-messages" class="ai-messages-container">
       <div class="ai-msg bot">
-        Kumusta po! Ako si <strong>Ate Lisa</strong>, ang iyong Palista Muna assistant. May maitutulong ba ako sa paggamit ng app? Pwede kang pumili sa suggested questions sa ibaba o mag-type ng tanong mo!
+        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang lahat ng tanong mo tungkol sa paggamit ng Palista Muna, privacy, at kung paano protektahan ang tindahan mo!
       </div>
     </div>
 
-    <!-- Suggested Quick Questions -->
     <div class="ai-quick-prompts">
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Safe ba gamitin ito?')">Safe ba ito?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-set ang credit limit ng customer?')">Credit limit per customer?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-print ang borrower agreement?')">Print agreement form?</button>
       <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano maglista ng bagong pautang?')">Paano maglista?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano gumagana ang SMS reminder?')">SMS reminder?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Ano ang Suki Score?')">Ano ang Suki Score?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano maglagay ng 4-digit PIN?')">Paano mag-PIN?</button>
     </div>
 
     <form id="ai-chat-form" class="ai-input-form">
-      <input type="text" id="ai-input" placeholder="Itanong kay Ate Lisa..." autocomplete="off">
+      <input type="text" id="ai-input" placeholder="Magtanong kay Ate Lisa..." autocomplete="off">
       <button type="submit" class="btn btn-primary interactive-fx" style="padding: 0.5rem 0.85rem;">Send</button>
     </form>
+  </div>
+
+  <!-- Modal: Data Privacy Policy -->
+  <div class="modal-overlay hidden" id="modal-privacy">
+    <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3>Data Privacy Policy (RA 10173)</h3>
+        <button class="btn-close interactive-fx" id="btn-close-privacy">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div style="font-size: 0.82rem; line-height: 1.6; color: var(--text-main);">
+        <p><strong>Palista Muna Data Privacy Commitment</strong></p>
+        <p>Alinsunod sa <em>Data Privacy Act of 2012 (Republic Act No. 10173)</em> ng Pilipinas, ang Palista Muna ay mahigpit na nangangako sa pagprotekta sa personal na impormasyon ng mga may-ari ng tindahan at kanilang mga customer.</p>
+        <br>
+        <p><strong>1. Anong Datos ang Kinokolekta?</strong></p>
+        <p>Kinokolekta lamang ng app ang impormasyong ibinibigay ng may-ari ng tindahan: Pangalan ng customer, mobile number (para sa SMS paalala), halaga ng pautang, items, at due date.</p>
+        <br>
+        <p><strong>2. Paano Pinoprotektahan ang Inyong Datos?</strong></p>
+        <p>• <strong>Per-Device / Per-User Isolation:</strong> Ang bawat tindahan ay may sariling isolated cloud partition. Hindi kailanman mababasa o makikita ng ibang tindahan ang iyong listahan.<br>
+        • <strong>Walang Public Data Selling:</strong> Hindi ibinebenta, ipinamamahagi, o ginagamit ang contact numbers ng mga umuutang sa anumang 3rd-party advertising.<br>
+        • <strong>Native SMS Routing:</strong> Ang SMS reminders ay hindi dumadaan sa third-party untrusted servers; ito ay direktang binubuksan sa native SMS messenger ng may-ari ng tindahan gamit ang sariling promo o load.</p>
+        <br>
+        <p><strong>3. Karapatan ng Gumagamit:</strong></p>
+        <p>May karapatan ang may-ari ng tindahan na magbura, mag-export sa CSV, o baguhin ang anumang record anumang oras. Ang pagbura sa app ay permanente ring nagbubura ng record sa database.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary interactive-fx" id="btn-ok-privacy">Naiintindihan Ko</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Credit Agreement Sheet -->
+  <div id="printable-contract" class="printable-contract hidden">
+    <div class="print-actions no-print">
+      <button type="button" class="btn btn-secondary interactive-fx" id="btn-close-print">Bumalik</button>
+      <button type="button" class="btn btn-primary interactive-fx" onclick="window.print()">I-Print ang Kasunduan (Print Form)</button>
+    </div>
+
+    <div class="contract-paper">
+      <div class="contract-header">
+        <h2>KASUNDUAN SA PAGPAPAUTANG AT PAGTALA (CREDIT AGREEMENT)</h2>
+        <p class="contract-sub">Opisyal na Talaan at Kasunduan gamit ang <strong>PALISTA MUNA</strong> Digital Ledger</p>
+      </div>
+
+      <div class="contract-section">
+        <p>Ang kasunduang ito ay pinagtitibay ngayong ika-____ araw ng ______________, 20____, sa pagitan nina:</p>
+        <p style="margin-top: 8px;"><strong>PANGALAN NG TINDAHAN / MAY-ARI:</strong> <span class="fill-line" id="print-store-name">_____________________________________________</span></p>
+        <p><strong>PANGALAN NG BORROWER (UMUUTANG):</strong> <span class="fill-line">_____________________________________________</span></p>
+        <p><strong>TIRAHAN / BARANGAY:</strong> <span class="fill-line">_____________________________________________</span></p>
+        <p><strong>AKTIBONG CONTACT NUMBER:</strong> <span class="fill-line">_____________________________________________</span></p>
+        <p><strong>PINAGKASUNDUANG CREDIT LIMIT (₱):</strong> <span class="fill-line">₱ _____________________________________</span></p>
+      </div>
+
+      <div class="contract-section">
+        <h3>MGA TUNTUNIN AT KASUNDUAN (TERMS & CONDITIONS):</h3>
+        <ol>
+          <li><strong>Pagtatala sa Palista Muna:</strong> Sumasang-ayon ang Borrower na ang lahat ng kanyang utang na paninda o bilihin ay ililista at imo-monitor gamit ang <em>Palista Muna Digital Ledger</em>.</li>
+          <li><strong>Pagsunod sa Due Date:</strong> Nangangako ang Borrower na magbabayad nang buo o maghuhulog bago sumapit ang itinakdang petsa ng bayaran (Due Date).</li>
+          <li><strong>Pagsunod sa Credit Limit:</strong> Hindi maaaring lumampas ang kabuuang balanse ng Borrower sa itinakdang Maximum Credit Limit nang walang hayagang pahintulot ng may-ari ng tindahan. Kapag naabot ang limit, pansamantalang ititigil ang pautang hangga't walang bayad.</li>
+          <li><strong>Pahintulot sa SMS Paalala:</strong> Kusang pinahihintulutan ng Borrower ang may-ari ng tindahan na magpadala ng magalang na SMS reminder o text notice sa kanyang mobile number kapag malapit na o lampas na sa due date.</li>
+          <li><strong>Data Privacy Consent (RA 10173):</strong> Ang personal na impormasyon (Pangalan at Numero) ay gagamitin lamang para sa lehitimong transaksyon sa pagitan ng Tindahan at Borrower. Hindi ito ipapamahagi kaninuman.</li>
+        </ol>
+      </div>
+
+      <div class="contract-signatures">
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <p>Lagda sa Ibabaw ng Limbag na Pangalan</p>
+          <p><strong>BORROWER (UMUUTANG)</strong></p>
+          <p style="font-size: 11px;">Petsa: __________________</p>
+        </div>
+
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <p>Lagda sa Ibabaw ng Limbag na Pangalan</p>
+          <p><strong>MAY-ARI NG SARI-SARI STORE</strong></p>
+          <p style="font-size: 11px;">Petsa: __________________</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Daily Closing Summary -->
@@ -222,7 +310,7 @@
     </div>
   </div>
 
-  <!-- Modal: Store Settings (PIN & Credit Limit) -->
+  <!-- Modal: Store Settings (PIN & Default Cap) -->
   <div class="modal-overlay hidden" id="modal-settings">
     <div class="modal-content">
       <div class="modal-header">
@@ -242,7 +330,7 @@
             <input type="password" id="setting-pin" maxlength="4" placeholder="e.g. 1234">
           </div>
           <div class="form-group">
-            <label>Default Credit Limit / Customer (₱)</label>
+            <label>Default Store Credit Limit (₱)</label>
             <input type="number" id="setting-credit-limit" placeholder="e.g. 1000">
           </div>
         </div>
@@ -262,7 +350,7 @@
     </div>
   </div>
 
-  <!-- Modal: Add Record with Credit Limit Warning -->
+  <!-- Modal: Add Record with Manual Customer Credit Limit -->
   <div class="modal-overlay hidden" id="modal-add">
     <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
@@ -287,6 +375,12 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label>Customer Specific Credit Limit (₱) <small style="color:var(--text-muted)">(Optional - Overrides default store limit)</small></label>
+          <input type="number" id="add-manual-limit" placeholder="e.g. 500 or 1500" step="any">
+        </div>
+
+        <!-- Dynamic Credit Limit Warning Banner -->
         <div id="credit-limit-warning" class="warning-banner hidden">
           ⚠️ <strong>Babala:</strong> Lalampas sa itinakdang credit limit ang customer na ito!
         </div>
@@ -387,7 +481,7 @@
     <div id="tour-backdrop" class="tour-backdrop"></div>
     <div id="tour-card" class="tour-card interactive-fx">
       <div class="tour-header">
-        <span class="tour-badge" id="tour-step-badge">STEP 1 NG 5</span>
+        <span class="tour-badge" id="tour-step-badge">STEP 1 NG 6</span>
         <button type="button" class="tour-skip" id="btn-tour-skip">Skip</button>
       </div>
       <h4 id="tour-title" class="tour-title">Maligayang Pagdating sa Palista Muna!</h4>
