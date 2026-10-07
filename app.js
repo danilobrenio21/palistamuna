@@ -21,12 +21,12 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code !== 'failed-precondition') console.warn("Persistence note:", err.code);
 });
 
-// User-scoped references
+// References
 let utangCol = null;
 let settingsDoc = null;
 let currentUser = null;
 
-// Local Catalog for Scanner
+// Product Barcode Catalog
 const BARCODE_CATALOG = {
   "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
   "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
@@ -61,7 +61,7 @@ const sectionSuki = document.getElementById("section-suki");
 const btnToggleView = document.getElementById("btn-toggle-view");
 const btnToggleText = document.getElementById("btn-toggle-text");
 
-// Modals
+// Modals & Panels
 const modalAdd = document.getElementById("modal-add");
 const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
@@ -70,7 +70,15 @@ const modalClosing = document.getElementById("modal-closing");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
 
-// Tour Elements
+// AI Elements
+const aiChatBtn = document.getElementById("ai-chat-btn");
+const aiChatWindow = document.getElementById("ai-chat-window");
+const btnCloseAi = document.getElementById("btn-close-ai");
+const aiMessages = document.getElementById("ai-messages");
+const aiChatForm = document.getElementById("ai-chat-form");
+const aiInput = document.getElementById("ai-input");
+
+// Tour Steps
 const tourSteps = [
   {
     targetId: null,
@@ -110,7 +118,7 @@ const btnTourSkip = document.getElementById("btn-tour-skip");
 
 // Neon Ripple Touch/Click Effect
 document.addEventListener("click", (e) => {
-  const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key");
+  const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key, .ai-fab, .ai-chip");
   if (!target) return;
 
   const rect = target.getBoundingClientRect();
@@ -366,7 +374,7 @@ function renderSukiDirectory() {
   });
 }
 
-// Toggle View
+// Toggle Views
 btnToggleView.addEventListener("click", () => {
   if (currentView === "ledger") {
     currentView = "suki";
@@ -772,4 +780,86 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!isDone) {
     setTimeout(startTour, 600);
   }
+});
+
+// --- Palista AI Knowledge Base & Chat Widget Logic ---
+const AI_RESPONSES = [
+  {
+    keywords: ["lista", "add", "maglista", "pautang", "record", "bagong"],
+    answer: "Para maglista ng bagong utang, i-click ang neon green na **'+ Add Record'** button sa itaas. Ilagay ang pangalan, phone number, halaga, at due date. Pwede ka ring mag-click ng Quick Presets (+₱55 Bigas, +₱18 Canton) o mag-scan gamit ang Barcode camera!"
+  },
+  {
+    keywords: ["sms", "remind", "paalala", "singil", "text"],
+    answer: "Sa tapat ng bawat customer na may utang, i-click ang **'Remind'** button. Kusang gagawa ang app ng magalang na text message na may kumpletong balanse at GCash details mo. Pindutin lang ang **'Open SMS App'** para ma-send agad!"
+  },
+  {
+    keywords: ["suki", "score", "score?", "directory", "delinquent", "risk"],
+    answer: "Ang **Suki Directory** ay kusang sumusuri sa bawat customer: **'Good Payer'** kung walang overdue, **'Follow-Up Needed'** kung may 1 overdue, at **'High Risk'** kung may 2 o higit pang beses na hindi nakabayad sa petsa."
+  },
+  {
+    keywords: ["pin", "lock", "password", "security", "code"],
+    answer: "Para lagyan ng 4-digit PIN lock ang app mo, pumunta sa **'Settings'** button sa itaas at ilagay ang iyong 4-digit code. Sa susunod na buksan mo ang app, hihingin muna ang PIN para ligtas ang iyong mga talaan!"
+  },
+  {
+    keywords: ["gcash", "maya", "bayad", "payment"],
+    answer: "Pumunta sa **'Settings'** button sa itaas at i-save ang iyong GCash at Maya numbers. Awtomatiko itong isasama sa SMS reminder para madaling makabayad ang iyong mga suki."
+  },
+  {
+    keywords: ["scanner", "barcode", "scan", "camera"],
+    answer: "Kapag nag-a-add ng utang via **'+ Add Record'**, pindutin ang **'Scan Barcode'**. Gamitin ang phone camera para itutok sa barcode ng mga bilihin gaya ng Lucky Me o Sardinas para kusa itong maidagdag sa listahan!"
+  },
+  {
+    keywords: ["daily", "summary", "closing", "gabi", "araw"],
+    answer: "I-click ang **'Daily Summary'** button sa itaas bago magsara ng tindahan. Makikita mo ang kabuuang nasingil at kung sinu-sinong customer ang dapat singilin bukas!"
+  }
+];
+
+function getAiAnswer(input) {
+  const clean = input.toLowerCase();
+  for (const item of AI_RESPONSES) {
+    if (item.keywords.some(k => clean.includes(k))) {
+      return item.answer;
+    }
+  }
+  return "Pasensya na po, hindi ko masyadong nakuha. Maaari mong itanong: 'Paano maglista?', 'Paano gumagana ang SMS reminder?', 'Ano ang Suki Score?', o 'Paano maglagay ng 4-digit PIN?'.";
+}
+
+function appendMessage(sender, text) {
+  const div = document.createElement("div");
+  div.className = `ai-msg ${sender}`;
+  div.innerHTML = text;
+  aiMessages.appendChild(div);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+}
+
+window.sendQuickPrompt = function(promptText) {
+  appendMessage("user", promptText);
+  setTimeout(() => {
+    const reply = getAiAnswer(promptText);
+    appendMessage("bot", reply);
+  }, 400);
+};
+
+aiChatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = aiInput.value.trim();
+  if (!text) return;
+  appendMessage("user", text);
+  aiInput.value = "";
+
+  setTimeout(() => {
+    const reply = getAiAnswer(text);
+    appendMessage("bot", reply);
+  }, 400);
+});
+
+aiChatBtn.addEventListener("click", () => {
+  aiChatWindow.classList.toggle("hidden");
+  if (!aiChatWindow.classList.contains("hidden")) {
+    aiInput.focus();
+  }
+});
+
+btnCloseAi.addEventListener("click", () => {
+  aiChatWindow.classList.add("hidden");
 });
