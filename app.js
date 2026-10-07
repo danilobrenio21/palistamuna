@@ -63,7 +63,7 @@ const sectionSuki = document.getElementById("section-suki");
 const btnToggleView = document.getElementById("btn-toggle-view");
 const btnToggleText = document.getElementById("btn-toggle-text");
 
-// Modals
+// Modals & Sheets
 const modalAdd = document.getElementById("modal-add");
 const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
@@ -71,7 +71,9 @@ const modalSettings = document.getElementById("modal-settings");
 const modalClosing = document.getElementById("modal-closing");
 const modalPrivacy = document.getElementById("modal-privacy");
 const modalRecovery = document.getElementById("modal-recovery");
+const modalPrintHub = document.getElementById("modal-print-hub");
 const printableContract = document.getElementById("printable-contract");
+const printableSignage = document.getElementById("printable-signage");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
 
@@ -92,33 +94,33 @@ const aiInput = document.getElementById("ai-input");
 const tourSteps = [
   {
     targetId: null,
-    title: "Maligayang Pagdating sa Palista Muna!",
-    desc: "Gabay ito kung paano gamitin ang bawat button para protektado at hindi malugi ang tindahan."
+    title: "Welcome to Palista Muna!",
+    desc: "A quick walkthrough to help you maximize features and eliminate store credit losses."
   },
   {
     targetId: "btn-open-add",
-    title: "+ Add Record Button",
-    desc: "Dito ka magtatala ng bagong pautang. Pwede kang maglagay ng sariling credit limit bawat borrower para iwas-lugi!"
+    title: "+ Add Record",
+    desc: "Record new credit entries here. Set per-customer credit limits to prevent financial defaults."
   },
   {
     targetId: "btn-toggle-view",
-    title: "Suki Directory",
-    desc: "I-click ito para makita ang credit reliability score ng bawat customer (Good Payer, Follow-Up Needed, o High Risk)."
+    title: "Customer Directory",
+    desc: "View Suki credit reliability scores (Good Payer, Follow-Up Needed, or High Risk)."
   },
   {
-    targetId: "btn-open-contract",
-    title: "Print Agreement Form",
-    desc: "I-click ito para mag-print ng opisyal na kasunduan na lalagdaan ng umuutang (may kasamang Data Privacy consent)."
+    targetId: "btn-open-print-hub",
+    title: "Forms & Posters Hub",
+    desc: "Print or download borrower credit agreements and the storefront signage poster as PDF files."
   },
   {
     targetId: "btn-open-closing",
-    title: "Daily Closing Summary",
-    desc: "Pagpatak ng gabi, i-click ito para sa buong tally ng nasingil mo ngayong araw at sino ang dapat singilin bukas."
+    title: "Daily Summary",
+    desc: "At closing time, tap here to review today's collected cash and customers due tomorrow."
   },
   {
     targetId: "btn-open-settings",
-    title: "Settings, Store ID & PIN",
-    desc: "Dito mo bubuuin ang iyong 6-digit Store ID at 4-digit security PIN para manatiling secured ang records mo!"
+    title: "Settings & Security",
+    desc: "Manage your 6-digit Store ID, 4-digit PIN lock, and GCash/Maya payment details."
   }
 ];
 
@@ -209,9 +211,10 @@ function bindVault(vaultId) {
   settingsUnsub = settingsDoc.onSnapshot((doc) => {
     if (doc.exists) {
       settings = doc.data();
-      document.getElementById("print-store-name").innerText = settings.storeName || "Tindahan";
+      const storeNameDisplay = settings.storeName || "Tindahan";
+      document.getElementById("print-store-name").innerText = storeNameDisplay;
+      document.getElementById("signage-store-name").innerText = storeNameDisplay.toUpperCase();
       
-      // Enforce PIN lock on fresh browser session
       if (settings.pin && settings.pin.length === 4) {
         const isUnlocked = sessionStorage.getItem("pm_unlocked");
         if (!isUnlocked) {
@@ -257,9 +260,9 @@ function verifyPin() {
   if (settings.pin && enteredPin === settings.pin) {
     sessionStorage.setItem("pm_unlocked", "true");
     pinScreen.classList.add("hidden");
-    showToast("Welcome back! Na-unlock ang iyong records.");
+    showToast("Welcome back! Unlocked your records.");
   } else {
-    showToast("Maling PIN code! Pakisubukan muli.");
+    showToast("Incorrect PIN code! Please try again.");
     enteredPin = "";
     updatePinDots();
   }
@@ -301,7 +304,7 @@ document.getElementById("form-recovery").addEventListener("submit", async (e) =>
   const pin = document.getElementById("rec-pin").value.trim();
 
   if (storeId.length !== 6) {
-    alert("Kailangan ng eksaktong 6-digit Store ID (Hal. 988128).");
+    alert("Please enter your exact 6-digit Store ID (e.g. 988128).");
     return;
   }
 
@@ -310,23 +313,22 @@ document.getElementById("form-recovery").addEventListener("submit", async (e) =>
     const testDoc = await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").get();
 
     if (!testDoc.exists) {
-      alert("Walang nahanap na records gamit ang Store ID na ito. Tiyakin na nai-save ito sa Settings noon.");
+      alert("No store found matching this Store ID. Please verify your details.");
       return;
     }
 
     const vaultSettings = testDoc.data();
     if (vaultSettings.pin !== pin) {
-      alert("Maling 4-digit PIN para sa Store ID na ito!");
+      alert("Incorrect 4-digit PIN for this Store ID!");
       return;
     }
 
-    // Success: Permanently link this browser to the store vault
     bindVault(targetVaultId);
     sessionStorage.setItem("pm_unlocked", "true");
     modalRecovery.classList.add("hidden");
-    showToast("Tagumpay! Naibalik ang lahat ng records ng iyong tindahan.");
+    showToast("Success! Restored all store records.");
   } catch (err) {
-    alert("Error sa pag-recover: " + err.message);
+    alert("Error during recovery: " + err.message);
   }
 });
 
@@ -442,7 +444,7 @@ function renderSukiDirectory() {
   const sukiList = Object.values(customers);
 
   if (sukiList.length === 0) {
-    sukiBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted)">No customer profiles accumulated yet.</td></tr>`;
+    sukiBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted)">No customer profiles recorded yet.</td></tr>`;
     return;
   }
 
@@ -488,7 +490,7 @@ btnToggleView.addEventListener("click", () => {
     currentView = "ledger";
     sectionSuki.classList.add("hidden");
     sectionLedger.classList.remove("hidden");
-    btnToggleText.innerText = "Suki Directory";
+    btnToggleText.innerText = "Customer Directory";
     renderLedger();
   }
 });
@@ -538,7 +540,7 @@ function checkCreditLimit() {
 
   const warningEl = document.getElementById("credit-limit-warning");
   if (existingBal + addingAmt > activeLimit) {
-    warningEl.innerHTML = `⚠️ <strong>Babala:</strong> Lampas sa ₱${activeLimit.toFixed(2)} limit ng customer na ito! Total utang magiging: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
+    warningEl.innerHTML = `⚠️ <strong>Warning:</strong> Exceeds ₱${activeLimit.toFixed(2)} limit for this customer! Total balance will be: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
     warningEl.classList.remove("hidden");
   } else {
     warningEl.classList.add("hidden");
@@ -647,7 +649,7 @@ document.getElementById("btn-copy-closing").addEventListener("click", () => {
   showToast("Report copied to clipboard!");
 });
 
-// Settings Handlers (Calculates 6-Digit Store ID and Saves to Cloud Vault)
+// Settings Handlers
 document.getElementById("btn-open-settings").addEventListener("click", () => {
   document.getElementById("setting-store-name").value = settings.storeName || "";
   document.getElementById("setting-birth-year").value = settings.birthYear || "";
@@ -670,13 +672,13 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
   const pinVal = document.getElementById("setting-pin").value.trim();
 
   if (pinVal.length !== 4) {
-    alert("Kailangan ng eksaktong 4-digit PIN.");
+    alert("Please enter an exact 4-digit PIN.");
     return;
   }
 
   const computedStoreId = computeStoreId(birthYear, phone);
   if (computedStoreId === "------" || computedStoreId.length !== 6) {
-    alert("Pakisiguradong tama ang nilagay na taon (Hal. 1988) at 11-digit mobile number.");
+    alert("Please ensure your birth year (e.g. 1988) and 11-digit mobile number are valid.");
     return;
   }
 
@@ -693,7 +695,6 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
   };
 
   try {
-    // If transitioning from temporary vault, migrate existing records over
     if (activeVaultId !== targetVaultId && records.length > 0) {
       for (const rec of records) {
         await db.collection("vaults").doc(targetVaultId).collection("records").add(rec);
@@ -706,8 +707,9 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
     sessionStorage.setItem("pm_unlocked", "true");
     modalSettings.classList.add("hidden");
     document.getElementById("print-store-name").innerText = updatedSettings.storeName;
-    alert(`Nai-save ang iyong settings!\n\nIyong 6-Digit Store ID: ${computedStoreId}\n\nTandaan ang Store ID na ito at ang iyong 4-digit PIN upang maibalik ang data kung sakaling lumipat ka ng cellphone!`);
-    showToast("Settings and Store ID secured permanently!");
+    document.getElementById("signage-store-name").innerText = updatedSettings.storeName.toUpperCase();
+    alert(`Settings saved successfully!\n\nYour 6-Digit Store ID: ${computedStoreId}\n\nKeep your Store ID and 4-digit PIN safe to recover your data anytime!`);
+    showToast("Settings and Store ID saved permanently!");
   } catch (err) {
     alert("Error saving settings: " + err.message);
   }
@@ -791,7 +793,7 @@ document.getElementById("form-payment").addEventListener("submit", async (e) => 
   }
 });
 
-// Reminder Handlers
+// Reminder Handlers (English Notice Template)
 window.openReminder = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
@@ -801,7 +803,7 @@ window.openReminder = function(id) {
   if (settings.gcash) paymentDetails += `\nGCash: ${settings.gcash}`;
   if (settings.maya) paymentDetails += `\nMaya: ${settings.maya}`;
 
-  const msg = `Good day ${record.name}! This is a reminder from ${settings.storeName || 'Tindahan'} regarding your outstanding balance of ₱${balance.toFixed(2)} due on ${record.dueDate}.${paymentDetails ? '\n\nYou may send payment via:' + paymentDetails : ''}\n\nThank you!`;
+  const msg = `Good day, ${record.name}! This is a friendly reminder from ${settings.storeName || 'Tindahan'} regarding your outstanding store credit balance of ₱${balance.toFixed(2)} due on ${record.dueDate}.${paymentDetails ? '\n\nYou may send your payment via:' + paymentDetails : ''}\n\nThank you very much!`;
 
   document.getElementById("remind-name").innerText = record.name;
   document.getElementById("remind-phone").innerText = record.phone;
@@ -823,7 +825,7 @@ document.getElementById("btn-copy-sms").addEventListener("click", () => {
 // Delete Record
 window.deleteRecord = async function(id) {
   if (!utangCol) return;
-  if (confirm("Sigurado ka bang nais mong burahin ang record na ito?")) {
+  if (confirm("Are you sure you want to permanently delete this credit entry?")) {
     try {
       await utangCol.doc(id).delete();
       showToast("Record permanently deleted.");
@@ -860,12 +862,55 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.click();
 });
 
-// Printable Contract
-document.getElementById("btn-open-contract").addEventListener("click", () => {
+// Print & Download Center Hub Navigation
+document.getElementById("btn-open-print-hub").addEventListener("click", () => {
+  modalPrintHub.classList.remove("hidden");
+});
+document.getElementById("btn-close-print-hub").addEventListener("click", () => modalPrintHub.classList.add("hidden"));
+document.getElementById("btn-cancel-print-hub").addEventListener("click", () => modalPrintHub.classList.add("hidden"));
+
+// Switch Views
+document.getElementById("btn-show-contract").addEventListener("click", () => {
+  modalPrintHub.classList.add("hidden");
   printableContract.classList.remove("hidden");
 });
-document.getElementById("btn-close-print").addEventListener("click", () => {
+document.getElementById("btn-back-contract").addEventListener("click", () => {
   printableContract.classList.add("hidden");
+});
+
+document.getElementById("btn-show-signage").addEventListener("click", () => {
+  modalPrintHub.classList.add("hidden");
+  printableSignage.classList.remove("hidden");
+});
+document.getElementById("btn-back-signage").addEventListener("click", () => {
+  printableSignage.classList.add("hidden");
+});
+
+// PDF Generation via html2pdf.js
+document.getElementById("btn-dl-contract-pdf").addEventListener("click", () => {
+  showToast("Generating Agreement PDF...");
+  const element = document.getElementById("contract-doc-content");
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `PalistaMuna_Agreement_${settings.storeId || 'Store'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
+});
+
+document.getElementById("btn-dl-signage-pdf").addEventListener("click", () => {
+  showToast("Generating Poster PDF...");
+  const element = document.getElementById("signage-doc-content");
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `PalistaMuna_Signage_${settings.storeId || 'Store'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
 });
 
 // Privacy Policy Modal
@@ -881,12 +926,12 @@ function showTourStep(index) {
   document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
 
   const step = tourSteps[index];
-  tourStepBadge.innerText = `STEP ${index + 1} NG ${tourSteps.length}`;
+  tourStepBadge.innerText = `STEP ${index + 1} OF ${tourSteps.length}`;
   tourTitle.innerText = step.title;
   tourDesc.innerText = step.desc;
 
   btnTourPrev.style.display = index === 0 ? "none" : "block";
-  btnTourNext.innerText = index === tourSteps.length - 1 ? "Tapos Na! 🎉" : "Susunod ➔";
+  btnTourNext.innerText = index === tourSteps.length - 1 ? "Get Started! 🎉" : "Next ➔";
 
   if (step.targetId) {
     const el = document.getElementById(step.targetId);
@@ -915,7 +960,7 @@ btnTourNext.addEventListener("click", () => {
     showTourStep(currentTourStep);
   } else {
     endTour();
-    showToast("Tour completed! Pwede ka nang maglista.");
+    showToast("Tour completed! You are ready to log entries.");
   }
 });
 
@@ -935,39 +980,31 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Ate Lisa AI Assistant Knowledge Base
+// Ate Lisa AI Assistant Knowledge Base (English & Filipino Conversational Support)
 const AI_KNOWLEDGE = [
   {
-    triggers: ["hi", "hello", "kamusta", "kumusta", "magandang", "good morning", "ate lisa"],
-    response: "Hello po! Ako si Ate Lisa. Nandito ako para gabayan ka sa paggamit ng Palista Muna para protektado ang kita ng iyong tindahan!"
+    triggers: ["hi", "hello", "good morning", "good afternoon", "good day", "ate lisa"],
+    response: "Hello! I'm Ate Lisa, your assistant for Palista Muna. How can I help protect your store from credit losses today?"
   },
   {
-    triggers: ["store id", "compute", "formula", "paano makuha"],
-    response: "Madali lang kunin ang iyong 6-digit **Store ID**! Ito ay ang kombinasyon ng **Huling 3 digits ng taon ng iyong kapanganakan** at **Huling 3 digits ng iyong mobile number**.<br><br>Halimbawa: Kung ipinanganak ka noong 1988 at ang cellphone mo ay 09673467128, ang iyong Store ID ay: **988128**."
+    triggers: ["pdf", "download", "agreement", "contract", "kasunduan"],
+    response: "To print or download the Borrower Agreement as a PDF, click on the **'Forms & Posters'** button in the header. Choose **'Borrower Credit Agreement'**, and tap **'📥 Download PDF'** or **'🖨️ Print Document'**!"
   },
   {
-    triggers: ["bawal", "wallet pin", "gcash pin", "bangko", "banking pin", "same pin"],
-    response: "🛡️ **Mahigpit na Paalala:** Huwag na huwag pong gagamitin ang parehong PIN ng inyong **GCash, Maya, o Online Banking**! Gumamit ng kakaibang 4-digit PIN sa Palista Muna para kahit anong mangyari, manatiling ligtas ang inyong pera sa bangko o e-wallet."
+    triggers: ["poster", "signage", "mag-palista", "counter", "print poster"],
+    response: "You can download or print our official storefront poster! Click **'Forms & Posters'** at the top, select **'Official Storefront Signage Poster'**, and download the PDF. You can post it at your store counter: *'Mag-PALISTA MUNA Kung Marunong Kang Magbayad'*!"
   },
   {
-    triggers: ["recover", "nawala", "lumipat", "bagong phone", "bura", "paano ibalik"],
-    response: "Kung lumipat ka ng cellphone o na-clear ang data, i-click lamang ang **'Switch Device / Store ID Recovery'** sa PIN screen o sa footer. Ilagay ang iyong 6-digit Store ID (hal. 988128) at 4-digit PIN, at kusa nitong ibabalik ang iyong records!"
+    triggers: ["safe", "secure", "privacy", "bank pin", "wallet pin"],
+    response: "Palista Muna is 100% private and secured. Each store operates inside its own cloud vault using a 6-digit Store ID and 4-digit PIN. As a rule of thumb, **never use your GCash, Maya, or bank PIN** as your app PIN to keep your bank accounts completely safe!"
   },
   {
-    triggers: ["safe ba", "ligtas ba", "safe", "secure", "manakaw", "leak", "hacked"],
-    response: "Opo, 100% safe at secured ang Palista Muna! Ang iyong listahan ay nakatago sa sarili mong pribadong cloud vault. Ikaw lamang ang may hawak ng iyong Store ID at 4-digit PIN."
+    triggers: ["store id", "how to get store id", "formula"],
+    response: "Your 6-Digit Store ID is calculated in Settings by taking the **Last 3 digits of your birth year** + **Last 3 digits of your phone number** (e.g. Born in 1988 + Mobile ending in 128 = **988128**)."
   },
   {
-    triggers: ["privacy", "dpa", "ra 10173", "data"],
-    response: "Sumusunod ang Palista Muna sa Data Privacy Act (RA 10173). Hindi namin ibinebenta ang numero ng mga customer mo at ikaw lamang ang may access sa iyong listahan."
-  },
-  {
-    triggers: ["credit limit", "limit", "cap"],
-    response: "Kapag nag-a-add ng utang via **'+ Add Record'**, ilagay ang nais mong limitasyon sa **'Customer Specific Credit Limit (₱)'**. Magbibigay ng babala ang app kapag sosobra na sa limit ang pautang sa kanya!"
-  },
-  {
-    triggers: ["print", "agreement", "kasunduan", "form"],
-    response: "I-click ang **'Print Agreement'** button sa itaas para mag-print ng pormal na Kasunduan sa Pagpapautang na may kumpletong lagdaan ng tindahan at umuutang!"
+    triggers: ["credit limit", "customer limit", "cap"],
+    response: "You can set custom credit caps per borrower! When clicking **'+ Add Record'**, enter the amount in **'Customer Specific Credit Limit (₱)'**. If their balance exceeds this cap, the app immediately raises a warning banner!"
   }
 ];
 
@@ -978,7 +1015,7 @@ function getAiAnswer(input) {
       return item.response;
     }
   }
-  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong: 'Paano makuha ang Store ID?', 'Bawal ba gamitin ang GCash PIN ko?', 'Paano mag-recover ng data?', o 'Safe ba gamitin ito?'.";
+  return "I'm here to help! You can ask: 'How do I download the agreement PDF?', 'How do I print the storefront poster?', 'How do I set a credit limit?', or 'Is this app safe?'.";
 }
 
 function appendMessage(sender, text) {

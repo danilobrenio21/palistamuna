@@ -17,11 +17,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Unified Store PIN & Recovery Screen -->
+  <!-- 4-Digit PIN Security Screen -->
   <div id="pin-screen" class="pin-screen hidden">
     <div class="pin-card">
       <img src="palistamuna.jpg" alt="Logo" class="pin-logo">
@@ -52,27 +52,27 @@
 
       <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
         <button type="button" class="btn btn-secondary interactive-fx" id="btn-show-recovery" style="width: 100%; font-size: 0.78rem;">
-          🔄 Lumipat ng Phone o Nawala ang Data? I-recover gamit ang Store ID
+          🔄 Changed Phone or Lost Data? Recover with Store ID
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Recovery Vault Modal (Using Store ID) -->
+  <!-- Recovery Vault Modal -->
   <div class="modal-overlay hidden" id="modal-recovery">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>I-recover ang Store Ledger</h3>
+        <h3>Recover Store Ledger</h3>
         <button class="btn-close interactive-fx" id="btn-close-recovery">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
-        Ilagay ang iyong <strong>6-Digit Store ID</strong> (Huling 3 digits ng taon ng kapanganakan + Huling 3 digits ng iyong mobile number) at ang iyong 4-digit PIN.
+        Enter your <strong>6-Digit Store ID</strong> (Last 3 digits of Birth Year + Last 3 digits of Mobile Number) and your 4-digit PIN.
       </p>
       <form id="form-recovery">
         <div class="form-group">
-          <label>6-Digit Store ID * (Hal. 988128)</label>
+          <label>6-Digit Store ID * (e.g. 988128)</label>
           <input type="text" id="rec-store-id" maxlength="6" placeholder="e.g. 988128" required pattern="[0-9]{6}">
         </div>
         <div class="form-group">
@@ -80,8 +80,8 @@
           <input type="password" id="rec-pin" maxlength="4" placeholder="••••" required pattern="[0-9]{4}">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-recovery">Bumalik</button>
-          <button type="submit" class="btn btn-primary interactive-fx">I-recover ang Data</button>
+          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-recovery">Back</button>
+          <button type="submit" class="btn btn-primary interactive-fx">Recover Data</button>
         </div>
       </form>
     </div>
@@ -95,7 +95,7 @@
       <div class="header-actions">
         <button class="btn btn-secondary interactive-fx" id="btn-toggle-view">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          <span id="btn-toggle-text">Suki Directory</span>
+          <span id="btn-toggle-text">Customer Directory</span>
         </button>
         <button class="btn btn-secondary interactive-fx" id="btn-open-settings">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -105,9 +105,9 @@
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           Summary
         </button>
-        <button class="btn btn-secondary interactive-fx" id="btn-open-contract">
-          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 13l2 2 4-4"></path></svg>
-          Print Agreement
+        <button class="btn btn-secondary interactive-fx" id="btn-open-print-hub">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Forms & Posters
         </button>
         <button class="btn btn-secondary interactive-fx" id="btn-export">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -203,7 +203,7 @@
     <footer style="margin-top: 2.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid #1c1c24; padding-top: 1.25rem;">
       <p>Palista Muna complies with the Philippine Data Privacy Act (RA 10173). Contact details are processed securely and strictly used for merchant-to-customer SMS notices.</p>
       <p style="margin-top: 6px;">
-        <a href="#" id="link-open-privacy" style="color: var(--accent-lime); text-decoration: underline;">Basahin ang Buong Data Privacy Policy</a>
+        <a href="#" id="link-open-privacy" style="color: var(--accent-lime); text-decoration: underline;">Read Full Data Privacy Policy</a>
         &nbsp;•&nbsp;
         <a href="#" id="link-open-recovery" style="color: var(--text-main); text-decoration: underline;">Switch Device / Store ID Recovery</a>
       </p>
@@ -229,21 +229,157 @@
     
     <div id="ai-messages" class="ai-messages-container">
       <div class="ai-msg bot">
-        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang mga tanong mo tungkol sa app, Store ID, at PIN security!
+        Hello! I'm <strong>Ate Lisa</strong>, your Palista Muna assistant. I'm here to help you protect your store from bad credit and answer any questions!
       </div>
     </div>
 
     <div class="ai-quick-prompts">
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-compute ang Store ID?')">Paano makuha ang Store ID?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Bawal ba gamitin ang GCash PIN ko?')">Bawal ba ang e-wallet PIN?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-recover ang data?')">Paano mag-recover?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Safe ba gamitin ito?')">Safe ba ito?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('How do I download the printable agreement?')">Download Agreement PDF?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('How do I print the storefront poster?')">Storefront Poster?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Is this app safe to use?')">Is this safe to use?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('How do I set a customer credit limit?')">Customer Credit Limit?</button>
     </div>
 
     <form id="ai-chat-form" class="ai-input-form">
-      <input type="text" id="ai-input" placeholder="Magtanong kay Ate Lisa..." autocomplete="off">
+      <input type="text" id="ai-input" placeholder="Ask Ate Lisa a question..." autocomplete="off">
       <button type="submit" class="btn btn-primary interactive-fx" style="padding: 0.5rem 0.85rem;">Send</button>
     </form>
+  </div>
+
+  <!-- Modal: Print & Download Center (Hub for Agreement & Store Poster) -->
+  <div class="modal-overlay hidden" id="modal-print-hub">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Print & Download Center</h3>
+        <button class="btn-close interactive-fx" id="btn-close-print-hub">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Choose the document you want to view, print, or download as a PDF:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-show-contract" style="justify-content: flex-start; padding: 0.9rem; text-align: left;">
+          <div>
+            <strong style="color: var(--accent-lime); display: block; margin-bottom: 2px;">📄 Borrower Credit Agreement (Kasunduan)</strong>
+            <small style="color: var(--text-muted);">Legal credit agreement with Data Privacy consent and signature lines.</small>
+          </div>
+        </button>
+
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-show-signage" style="justify-content: flex-start; padding: 0.9rem; text-align: left;">
+          <div>
+            <strong style="color: var(--accent-lime); display: block; margin-bottom: 2px;">🏪 Official Storefront Signage Poster</strong>
+            <small style="color: var(--text-muted);">"Mag-PALISTA MUNA Kung Marunong Kang Magbayad" store counter signage.</small>
+          </div>
+        </button>
+      </div>
+      <div class="modal-footer" style="margin-top: 1.5rem;">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-print-hub">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View: Printable Credit Agreement Document -->
+  <div id="printable-contract" class="printable-overlay hidden">
+    <div class="print-actions no-print">
+      <button type="button" class="btn btn-secondary interactive-fx" id="btn-back-contract">Back to App</button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-dl-contract-pdf">📥 Download PDF</button>
+        <button type="button" class="btn btn-primary interactive-fx" onclick="window.print()">🖨️ Print Document</button>
+      </div>
+    </div>
+
+    <div class="contract-paper" id="contract-doc-content">
+      <div class="doc-header-brand">
+        <img src="palistamuna.jpg" alt="Palista Muna Logo" class="doc-logo">
+      </div>
+      <div class="contract-header">
+        <h2>CREDIT AGREEMENT & RECORD FORM</h2>
+        <h4 style="font-size: 0.88rem; color: #444; margin-top: 2px;">KASUNDUAN SA PAGPAPAUTANG AT PAGTATALA</h4>
+        <p class="contract-sub">Official store credit ledger agreement powered by <strong>PALISTA MUNA</strong> Digital Ledger</p>
+      </div>
+
+      <div class="contract-section">
+        <p>This credit agreement is made and entered into this _____ day of ___________________, 20_____, by and between:</p>
+        <div style="margin-top: 10px; line-height: 1.8;">
+          <p><strong>STORE NAME / MERCHANT:</strong> <span class="fill-line" id="print-store-name">_____________________________________________</span></p>
+          <p><strong>BORROWER FULL NAME:</strong> <span class="fill-line">_____________________________________________</span></p>
+          <p><strong>RESIDENTIAL ADDRESS:</strong> <span class="fill-line">_____________________________________________</span></p>
+          <p><strong>ACTIVE MOBILE NUMBER:</strong> <span class="fill-line">_____________________________________________</span></p>
+          <p><strong>AGREED MAXIMUM CREDIT LIMIT:</strong> <span class="fill-line">₱ _____________________________________</span></p>
+        </div>
+      </div>
+
+      <div class="contract-section">
+        <h3>TERMS AND CONDITIONS (MGA TUNTUNIN AT KASUNDUAN):</h3>
+        <ol>
+          <li><strong>Digital Ledger Recording:</strong> The Borrower explicitly agrees that all store credit purchases (palista) will be officially logged and tracked using the <em>Palista Muna Digital Ledger</em> application.</li>
+          <li><strong>Prompt Payment on Due Date:</strong> The Borrower agrees to pay their outstanding balance in full or make agreed installment payments on or before the specified Due Date.</li>
+          <li><strong>Credit Limit Compliance:</strong> The total unpaid balance shall not exceed the Agreed Maximum Credit Limit without explicit prior consent from the store owner. Further credit transactions will be halted once this threshold is reached.</li>
+          <li><strong>SMS Reminder Authorization:</strong> The Borrower voluntarily grants permission for the store owner to send polite SMS payment reminder notices regarding due or overdue balances.</li>
+          <li><strong>Data Privacy Consent (RA 10173):</strong> In compliance with the Philippine Data Privacy Act of 2012, personal contact information will strictly be used for legitimate business credit tracking between the Store and the Borrower. No data shall be sold or shared with third parties.</li>
+        </ol>
+      </div>
+
+      <div class="contract-signatures">
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <p><strong>BORROWER SIGNATURE OVER PRINTED NAME</strong></p>
+          <p style="font-size: 11px; margin-top: 4px;">Date: ________________________</p>
+        </div>
+
+        <div class="sig-block">
+          <div class="sig-line"></div>
+          <p><strong>STORE OWNER / MERCHANT SIGNATURE</strong></p>
+          <p style="font-size: 11px; margin-top: 4px;">Date: ________________________</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View: Storefront Signage Poster ("Mag-PALISTA MUNA Kung...") -->
+  <div id="printable-signage" class="printable-overlay hidden">
+    <div class="print-actions no-print">
+      <button type="button" class="btn btn-secondary interactive-fx" id="btn-back-signage">Back to App</button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-dl-signage-pdf">📥 Download PDF</button>
+        <button type="button" class="btn btn-primary interactive-fx" onclick="window.print()">🖨️ Print Poster</button>
+      </div>
+    </div>
+
+    <div class="signage-paper" id="signage-doc-content">
+      <div class="signage-inner">
+        <div class="signage-badge-top">NOTICE TO ALL CUSTOMERS & SUKI</div>
+
+        <img src="palistamuna.jpg" alt="Palista Muna Logo" class="signage-logo">
+
+        <div class="signage-headline">
+          <span class="signage-quote">“</span>
+          MAG-PALISTA MUNA
+          <div class="signage-subheadline">KUNG MARUNONG KANG MAGBAYAD</div>
+        </div>
+
+        <div class="signage-divider"></div>
+
+        <div class="signage-body">
+          <p class="signage-lead">Ang tindahang ito ay opisyal nang gumagamit ng <strong>PALISTA MUNA</strong> Digital Ledger System.</p>
+          <ul class="signage-bullets">
+            <li>✓ Awtomatikong naka-record sa digital system ang bawat utang</li>
+            <li>✓ May opisyal na SMS reminder at notification sa due date</li>
+            <li>✓ May credit limit bawat customer para sa proteksyon ng tindahan</li>
+          </ul>
+        </div>
+
+        <div class="signage-store-tag">
+          STORE: <span id="signage-store-name">TINDAHAN</span>
+        </div>
+
+        <div class="signage-footer">
+          PROTEKTADO ANG KITA • IWAS-LUGI • DIGITALLY MANAGED STORE
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Data Privacy Policy -->
@@ -257,69 +393,18 @@
       </div>
       <div style="font-size: 0.82rem; line-height: 1.6; color: var(--text-main);">
         <p><strong>Palista Muna Data Privacy Commitment</strong></p>
-        <p>Alinsunod sa <em>Data Privacy Act of 2012 (Republic Act No. 10173)</em>, ang Palista Muna ay mahigpit na nangangako sa pagprotekta sa personal na impormasyon ng mga may-ari ng tindahan at kanilang mga customer.</p>
+        <p>In accordance with the <em>Data Privacy Act of 2012 (Republic Act No. 10173)</em> of the Philippines, Palista Muna strictly commits to protecting the personal information of micro-merchants and their customers.</p>
         <br>
-        <p><strong>1. Anong Datos ang Kinokolekta?</strong></p>
-        <p>Pangalan ng customer, mobile number (para sa SMS paalala), halaga ng pautang, items, due date, at credit limit.</p>
+        <p><strong>1. Data Collected:</strong></p>
+        <p>Customer name, mobile number (for merchant-triggered SMS notices), loan amount, items, due date, and credit limits.</p>
         <br>
-        <p><strong>2. Paano Pinoprotektahan ang Inyong Datos?</strong></p>
-        <p>• <strong>Custom Store ID Partition:</strong> Nakabukod ang cloud storage gamit ang 6-Digit Store ID at PIN.<br>
-        • <strong>Walang Public Data Selling:</strong> Hindi kailanman ibinebenta ang anumang impormasyon sa third-party advertisers.<br>
-        • <strong>Native SMS Routing:</strong> Ikaw ang nagpapadala ng text direkta mula sa sarili mong messaging app.</p>
+        <p><strong>2. Security & Storage:</strong></p>
+        <p>• <strong>Custom Store ID Partition:</strong> Data is isolated per merchant via their 6-Digit Store ID and 4-Digit PIN.<br>
+        • <strong>No Data Selling:</strong> Information is never sold, harvested, or transmitted to third-party ad networks.<br>
+        • <strong>Native SMS Routing:</strong> SMS notices open directly on your mobile carrier's native messenger.</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary interactive-fx" id="btn-ok-privacy">Naiintindihan Ko</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Printable Credit Agreement Sheet -->
-  <div id="printable-contract" class="printable-contract hidden">
-    <div class="print-actions no-print">
-      <button type="button" class="btn btn-secondary interactive-fx" id="btn-close-print">Bumalik</button>
-      <button type="button" class="btn btn-primary interactive-fx" onclick="window.print()">I-Print ang Kasunduan (Print Form)</button>
-    </div>
-
-    <div class="contract-paper">
-      <div class="contract-header">
-        <h2>KASUNDUAN SA PAGPAPAUTANG AT PAGTALA (CREDIT AGREEMENT)</h2>
-        <p class="contract-sub">Opisyal na Talaan at Kasunduan gamit ang <strong>PALISTA MUNA</strong> Digital Ledger</p>
-      </div>
-
-      <div class="contract-section">
-        <p>Ang kasunduang ito ay pinagtitibay ngayong ika-____ araw ng ______________, 20____, sa pagitan nina:</p>
-        <p style="margin-top: 8px;"><strong>PANGALAN NG TINDAHAN / MAY-ARI:</strong> <span class="fill-line" id="print-store-name">_____________________________________________</span></p>
-        <p><strong>PANGALAN NG BORROWER (UMUUTANG):</strong> <span class="fill-line">_____________________________________________</span></p>
-        <p><strong>TIRAHAN / BARANGAY:</strong> <span class="fill-line">_____________________________________________</span></p>
-        <p><strong>AKTIBONG CONTACT NUMBER:</strong> <span class="fill-line">_____________________________________________</span></p>
-        <p><strong>PINAGKASUNDUANG CREDIT LIMIT (₱):</strong> <span class="fill-line">₱ _____________________________________</span></p>
-      </div>
-
-      <div class="contract-section">
-        <h3>MGA TUNTUNIN AT KASUNDUAN (TERMS & CONDITIONS):</h3>
-        <ol>
-          <li><strong>Pagtatala sa Palista Muna:</strong> Sumasang-ayon ang Borrower na ang lahat ng kanyang utang na paninda o bilihin ay ililista at imo-monitor gamit ang <em>Palista Muna Digital Ledger</em>.</li>
-          <li><strong>Pagsunod sa Due Date:</strong> Nangangako ang Borrower na magbabayad nang buo o maghuhulog bago sumapit ang itinakdang petsa ng bayaran (Due Date).</li>
-          <li><strong>Pagsunod sa Credit Limit:</strong> Hindi maaaring lumampas ang kabuuang balanse ng Borrower sa itinakdang Maximum Credit Limit nang walang hayagang pahintulot ng tindahan.</li>
-          <li><strong>Pahintulot sa SMS Paalala:</strong> Kusang pinahihintulutan ng Borrower ang may-ari ng tindahan na magpadala ng magalang na SMS reminder o text notice sa kanyang mobile number.</li>
-          <li><strong>Data Privacy Consent (RA 10173):</strong> Ang personal na impormasyon ay gagamitin lamang para sa lehitimong transaksyon sa pagitan ng Tindahan at Borrower.</li>
-        </ol>
-      </div>
-
-      <div class="contract-signatures">
-        <div class="sig-block">
-          <div class="sig-line"></div>
-          <p>Lagda sa Ibabaw ng Limbag na Pangalan</p>
-          <p><strong>BORROWER (UMUUTANG)</strong></p>
-          <p style="font-size: 11px;">Petsa: __________________</p>
-        </div>
-
-        <div class="sig-block">
-          <div class="sig-line"></div>
-          <p>Lagda sa Ibabaw ng Limbag na Pangalan</p>
-          <p><strong>MAY-ARI NG SARI-SARI STORE</strong></p>
-          <p style="font-size: 11px;">Petsa: __________________</p>
-        </div>
+        <button type="button" class="btn btn-primary interactive-fx" id="btn-ok-privacy">I Understand</button>
       </div>
     </div>
   </div>
@@ -344,7 +429,7 @@
     </div>
   </div>
 
-  <!-- Modal: Store & Security Settings with 6-Digit Store ID Generator -->
+  <!-- Modal: Store & Security Settings -->
   <div class="modal-overlay hidden" id="modal-settings">
     <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
@@ -361,20 +446,20 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Taon ng Kapanganakan * (Hal. 1988)</label>
+            <label>Birth Year * (e.g. 1988)</label>
             <input type="number" id="setting-birth-year" placeholder="e.g. 1988" min="1930" max="2015" required>
           </div>
           <div class="form-group">
-            <label>Store Mobile Number * (Hal. 09673467128)</label>
+            <label>Store Mobile Number * (e.g. 09673467128)</label>
             <input type="tel" id="setting-gcash" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
           </div>
         </div>
 
         <!-- Generated Store ID Banner -->
         <div class="store-id-preview-box">
-          <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Iyong 6-Digit Store ID (Tandaan ito!):</span>
+          <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Your 6-Digit Store ID (Remember this!):</span>
           <div id="setting-computed-store-id" class="store-id-badge">------</div>
-          <small style="color: var(--text-muted); font-size: 0.72rem;">Huling 3 digits ng Taon + Huling 3 digits ng Mobile</small>
+          <small style="color: var(--text-muted); font-size: 0.72rem;">Last 3 digits of Year + Last 3 digits of Mobile</small>
         </div>
 
         <div class="form-group" style="margin-top: 1rem;">
@@ -384,7 +469,7 @@
 
         <!-- Security Warning Banner -->
         <div class="security-warning-box">
-          🛡️ <strong>PAALALA SA SEGURIDAD:</strong> Huwag na huwag pong gagamitin ang parehong PIN ng inyong <strong>GCash, Maya, o Online Banking</strong>. Gumamit ng kakaibang 4-digit code para manatiling ligtas ang inyong mga bank account.
+          🛡️ <strong>SECURITY REMINDER:</strong> Please do NOT use a PIN that is the same as your <strong>GCash, Maya, or Digital Banking wallets</strong>. Use a unique 4-digit code to keep your personal banking accounts safe.
         </div>
 
         <div class="form-row" style="margin-top: 1rem;">
@@ -432,22 +517,22 @@
         </div>
 
         <div class="form-group">
-          <label>Customer Specific Credit Limit (₱) <small style="color:var(--text-muted)">(Optional - Overrides default limit)</small></label>
+          <label>Customer Specific Credit Limit (₱) <small style="color:var(--text-muted)">(Optional - Overrides default store limit)</small></label>
           <input type="number" id="add-manual-limit" placeholder="e.g. 500 or 1500" step="any">
         </div>
 
         <div id="credit-limit-warning" class="warning-banner hidden">
-          ⚠️ <strong>Babala:</strong> Lalampas sa itinakdang credit limit ang customer na ito!
+          ⚠️ <strong>Warning:</strong> This entry will exceed the customer's specified credit limit!
         </div>
 
         <div class="form-group">
           <label>Quick Tally Presets</label>
           <div class="quick-presets">
-            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="1kg Bigas" data-price="55">+₱55 Bigas (1kg)</button>
-            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Lucky Me Pancit Canton" data-price="18">+₱18 Canton</button>
-            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Canned Sardines" data-price="25">+₱25 Sardinas</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="1kg Rice" data-price="55">+₱55 Rice (1kg)</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Instant Noodles" data-price="18">+₱18 Noodles</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Canned Sardines" data-price="25">+₱25 Sardines</button>
             <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Softdrink 1.5L" data-price="70">+₱70 Softdrink</button>
-            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Egg (1pc)" data-price="9">+₱9 Itlog</button>
+            <button type="button" class="btn-preset tally-btn interactive-fx" data-name="Fresh Egg (1pc)" data-price="9">+₱9 Egg</button>
           </div>
         </div>
 
@@ -531,25 +616,28 @@
     </div>
   </div>
 
-  <!-- Interactive Product Tour Modal / Overlay -->
+  <!-- Interactive Product Tour Modal -->
   <div id="tour-overlay" class="tour-overlay hidden">
     <div id="tour-backdrop" class="tour-backdrop"></div>
     <div id="tour-card" class="tour-card interactive-fx">
       <div class="tour-header">
-        <span class="tour-badge" id="tour-step-badge">STEP 1 NG 6</span>
+        <span class="tour-badge" id="tour-step-badge">STEP 1 OF 6</span>
         <button type="button" class="tour-skip" id="btn-tour-skip">Skip</button>
       </div>
-      <h4 id="tour-title" class="tour-title">Maligayang Pagdating sa Palista Muna!</h4>
-      <p id="tour-desc" class="tour-desc">Gabay ito kung paano gamitin ang bawat button para iwas-lugi ang iyong tindahan.</p>
+      <h4 id="tour-title" class="tour-title">Welcome to Palista Muna!</h4>
+      <p id="tour-desc" class="tour-desc">A quick tour to guide you on how to protect your store from credit losses.</p>
       
       <div class="tour-footer">
-        <button type="button" class="btn btn-secondary interactive-fx" id="btn-tour-prev">Bumalik</button>
-        <button type="button" class="btn btn-primary interactive-fx" id="btn-tour-next">Susunod</button>
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-tour-prev">Previous</button>
+        <button type="button" class="btn btn-primary interactive-fx" id="btn-tour-next">Next</button>
       </div>
     </div>
   </div>
 
   <div id="toast" class="toast hidden">Notice</div>
+
+  <!-- PDF Generation Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
