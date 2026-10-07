@@ -52,13 +52,13 @@
 
       <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
         <button type="button" class="btn btn-secondary interactive-fx" id="btn-show-recovery" style="width: 100%; font-size: 0.78rem;">
-          🔄 Lumipat ng Phone o Nawala ang Data? I-recover Dito
+          🔄 Lumipat ng Phone o Nawala ang Data? I-recover gamit ang Store ID
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Recovery Vault Modal -->
+  <!-- Recovery Vault Modal (Using Store ID) -->
   <div class="modal-overlay hidden" id="modal-recovery">
     <div class="modal-content">
       <div class="modal-header">
@@ -67,13 +67,13 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-        Ilagay ang iyong rehistradong Store Mobile Number at ang iyong 4-digit PIN upang maibalik ang lahat ng iyong records.
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
+        Ilagay ang iyong <strong>6-Digit Store ID</strong> (Huling 3 digits ng taon ng kapanganakan + Huling 3 digits ng iyong mobile number) at ang iyong 4-digit PIN.
       </p>
       <form id="form-recovery">
         <div class="form-group">
-          <label>Store Mobile / GCash Number *</label>
-          <input type="tel" id="rec-phone" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
+          <label>6-Digit Store ID * (Hal. 988128)</label>
+          <input type="text" id="rec-store-id" maxlength="6" placeholder="e.g. 988128" required pattern="[0-9]{6}">
         </div>
         <div class="form-group">
           <label>4-Digit Store PIN *</label>
@@ -205,7 +205,7 @@
       <p style="margin-top: 6px;">
         <a href="#" id="link-open-privacy" style="color: var(--accent-lime); text-decoration: underline;">Basahin ang Buong Data Privacy Policy</a>
         &nbsp;•&nbsp;
-        <a href="#" id="link-open-recovery" style="color: var(--text-main); text-decoration: underline;">Switch Device / Account Recovery</a>
+        <a href="#" id="link-open-recovery" style="color: var(--text-main); text-decoration: underline;">Switch Device / Store ID Recovery</a>
       </p>
     </footer>
   </main>
@@ -229,15 +229,15 @@
     
     <div id="ai-messages" class="ai-messages-container">
       <div class="ai-msg bot">
-        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang mga tanong mo tungkol sa app, PIN recovery, at kung paano protektahan ang tindahan mo!
+        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang mga tanong mo tungkol sa app, Store ID, at PIN security!
       </div>
     </div>
 
     <div class="ai-quick-prompts">
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-recover ang data kapag lumipat ng phone?')">Paano mag-recover ng data?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-compute ang Store ID?')">Paano makuha ang Store ID?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Bawal ba gamitin ang GCash PIN ko?')">Bawal ba ang e-wallet PIN?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-recover ang data?')">Paano mag-recover?</button>
       <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Safe ba gamitin ito?')">Safe ba ito?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-set ang credit limit ng customer?')">Credit limit?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano maglista ng bagong pautang?')">Paano maglista?</button>
     </div>
 
     <form id="ai-chat-form" class="ai-input-form">
@@ -263,7 +263,7 @@
         <p>Pangalan ng customer, mobile number (para sa SMS paalala), halaga ng pautang, items, due date, at credit limit.</p>
         <br>
         <p><strong>2. Paano Pinoprotektahan ang Inyong Datos?</strong></p>
-        <p>• <strong>Per-Store Vault:</strong> Nakahiwalay ang cloud storage ng bawat tindahan gamit ang PIN at Store Mobile Number.<br>
+        <p>• <strong>Custom Store ID Partition:</strong> Nakabukod ang cloud storage gamit ang 6-Digit Store ID at PIN.<br>
         • <strong>Walang Public Data Selling:</strong> Hindi kailanman ibinebenta ang anumang impormasyon sa third-party advertisers.<br>
         • <strong>Native SMS Routing:</strong> Ikaw ang nagpapadala ng text direkta mula sa sarili mong messaging app.</p>
       </div>
@@ -344,9 +344,9 @@
     </div>
   </div>
 
-  <!-- Modal: Store Settings (Includes Mobile Anchor & PIN) -->
+  <!-- Modal: Store & Security Settings with 6-Digit Store ID Generator -->
   <div class="modal-overlay hidden" id="modal-settings">
-    <div class="modal-content">
+    <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
         <h3>Store & Security Settings</h3>
         <button class="btn-close interactive-fx" id="btn-close-settings">
@@ -358,17 +358,36 @@
           <label>Store Name *</label>
           <input type="text" id="setting-store-name" placeholder="e.g. Aling Nena Store" required>
         </div>
+
         <div class="form-row">
           <div class="form-group">
-            <label>Store Mobile / GCash Number * (Para sa Recovery)</label>
+            <label>Taon ng Kapanganakan * (Hal. 1988)</label>
+            <input type="number" id="setting-birth-year" placeholder="e.g. 1988" min="1930" max="2015" required>
+          </div>
+          <div class="form-group">
+            <label>Store Mobile Number * (Hal. 09673467128)</label>
             <input type="tel" id="setting-gcash" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
           </div>
-          <div class="form-group">
-            <label>4-Digit App PIN *</label>
-            <input type="password" id="setting-pin" maxlength="4" placeholder="e.g. 1234" required pattern="[0-9]{4}">
-          </div>
         </div>
-        <div class="form-row">
+
+        <!-- Generated Store ID Banner -->
+        <div class="store-id-preview-box">
+          <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Iyong 6-Digit Store ID (Tandaan ito!):</span>
+          <div id="setting-computed-store-id" class="store-id-badge">------</div>
+          <small style="color: var(--text-muted); font-size: 0.72rem;">Huling 3 digits ng Taon + Huling 3 digits ng Mobile</small>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>4-Digit App PIN *</label>
+          <input type="password" id="setting-pin" maxlength="4" placeholder="••••" required pattern="[0-9]{4}">
+        </div>
+
+        <!-- Security Warning Banner -->
+        <div class="security-warning-box">
+          🛡️ <strong>PAALALA SA SEGURIDAD:</strong> Huwag na huwag pong gagamitin ang parehong PIN ng inyong <strong>GCash, Maya, o Online Banking</strong>. Gumamit ng kakaibang 4-digit code para manatiling ligtas ang inyong mga bank account.
+        </div>
+
+        <div class="form-row" style="margin-top: 1rem;">
           <div class="form-group">
             <label>Default Store Credit Limit (₱)</label>
             <input type="number" id="setting-credit-limit" placeholder="e.g. 1000">
@@ -378,6 +397,7 @@
             <input type="tel" id="setting-maya" placeholder="09xxxxxxxxx">
           </div>
         </div>
+
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-settings">Cancel</button>
           <button type="submit" class="btn btn-primary interactive-fx">Save Settings & Secure Vault</button>

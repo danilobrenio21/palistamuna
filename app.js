@@ -40,7 +40,7 @@ const BARCODE_CATALOG = {
 
 // Application State
 let records = [];
-let settings = { storeName: "Tindahan", gcash: "", maya: "", pin: "", creditLimit: 0 };
+let settings = { storeName: "Tindahan", birthYear: "", gcash: "", storeId: "", maya: "", pin: "", creditLimit: 0 };
 let activeFilter = "all";
 let currentView = "ledger";
 let html5QrCode = null;
@@ -74,6 +74,11 @@ const modalRecovery = document.getElementById("modal-recovery");
 const printableContract = document.getElementById("printable-contract");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
+
+// Store ID Input Calculation Fields
+const birthYearInput = document.getElementById("setting-birth-year");
+const phoneInput = document.getElementById("setting-gcash");
+const computedStoreIdBadge = document.getElementById("setting-computed-store-id");
 
 // AI Elements
 const aiChatBtn = document.getElementById("ai-chat-btn");
@@ -112,8 +117,8 @@ const tourSteps = [
   },
   {
     targetId: "btn-open-settings",
-    title: "Settings & Security PIN",
-    desc: "Dito mo ilalagay ang GCash/Maya details, 4-digit security PIN lock, at store name."
+    title: "Settings, Store ID & PIN",
+    desc: "Dito mo bubuuin ang iyong 6-digit Store ID at 4-digit security PIN para manatiling secured ang records mo!"
   }
 ];
 
@@ -126,7 +131,7 @@ const btnTourPrev = document.getElementById("btn-tour-prev");
 const btnTourNext = document.getElementById("btn-tour-next");
 const btnTourSkip = document.getElementById("btn-tour-skip");
 
-// Ripple Touch Effect
+// Neon Ripple Touch Effect
 document.addEventListener("click", (e) => {
   const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key, .ai-fab, .ai-chip");
   if (!target) return;
@@ -160,7 +165,28 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// Attach Vault Listeners
+// Compute 6-Digit Store ID: Last 3 digits of Year + Last 3 digits of Phone
+function computeStoreId(year, phone) {
+  const cleanYear = (year || "").toString().trim();
+  const cleanPhone = (phone || "").toString().trim();
+
+  if (cleanYear.length >= 3 && cleanPhone.length >= 3) {
+    const yearPart = cleanYear.slice(-3);
+    const phonePart = cleanPhone.slice(-3);
+    return `${yearPart}${phonePart}`;
+  }
+  return "------";
+}
+
+function updateStoreIdPreview() {
+  const calcId = computeStoreId(birthYearInput.value, phoneInput.value);
+  computedStoreIdBadge.innerText = calcId;
+}
+
+birthYearInput.addEventListener("input", updateStoreIdPreview);
+phoneInput.addEventListener("input", updateStoreIdPreview);
+
+// Attach Active Vault Listeners
 function bindVault(vaultId) {
   if (recordsUnsub) recordsUnsub();
   if (settingsUnsub) settingsUnsub();
@@ -185,7 +211,7 @@ function bindVault(vaultId) {
       settings = doc.data();
       document.getElementById("print-store-name").innerText = settings.storeName || "Tindahan";
       
-      // Enforce PIN lock on fresh session
+      // Enforce PIN lock on fresh browser session
       if (settings.pin && settings.pin.length === 4) {
         const isUnlocked = sessionStorage.getItem("pm_unlocked");
         if (!isUnlocked) {
@@ -239,14 +265,13 @@ function verifyPin() {
   }
 }
 
-// Initial Auth & Vault Startup
+// Initial Startup & Auth Isolation
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
     await auth.signInAnonymously().catch(console.error);
     return;
   }
 
-  // If already linked to a phone vault, use it; otherwise assign local ID
   if (!activeVaultId) {
     activeVaultId = user.uid;
     localStorage.setItem("palista_vault_id", activeVaultId);
@@ -269,28 +294,33 @@ document.getElementById("link-open-recovery").addEventListener("click", (e) => {
 document.getElementById("btn-close-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
 document.getElementById("btn-cancel-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
 
-// Account Recovery by Phone + PIN
+// Account Recovery by 6-Digit Store ID + 4-Digit PIN
 document.getElementById("form-recovery").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const phone = document.getElementById("rec-phone").value.trim();
+  const storeId = document.getElementById("rec-store-id").value.trim();
   const pin = document.getElementById("rec-pin").value.trim();
 
+  if (storeId.length !== 6) {
+    alert("Kailangan ng eksaktong 6-digit Store ID (Hal. 988128).");
+    return;
+  }
+
   try {
-    const targetVaultId = `store_${phone}`;
+    const targetVaultId = `store_${storeId}`;
     const testDoc = await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").get();
 
     if (!testDoc.exists) {
-      alert("Walang nahanap na records gamit ang numerong ito. Tiyakin na nai-save ito sa Settings noon.");
+      alert("Walang nahanap na records gamit ang Store ID na ito. Tiyakin na nai-save ito sa Settings noon.");
       return;
     }
 
     const vaultSettings = testDoc.data();
     if (vaultSettings.pin !== pin) {
-      alert("Maling 4-digit PIN para sa tindahang ito!");
+      alert("Maling 4-digit PIN para sa Store ID na ito!");
       return;
     }
 
-    // Success: Link browser to this vault permanently
+    // Success: Permanently link this browser to the store vault
     bindVault(targetVaultId);
     sessionStorage.setItem("pm_unlocked", "true");
     modalRecovery.classList.add("hidden");
@@ -617,13 +647,15 @@ document.getElementById("btn-copy-closing").addEventListener("click", () => {
   showToast("Report copied to clipboard!");
 });
 
-// Settings Handlers (Saves directly to Store Vault)
+// Settings Handlers (Calculates 6-Digit Store ID and Saves to Cloud Vault)
 document.getElementById("btn-open-settings").addEventListener("click", () => {
   document.getElementById("setting-store-name").value = settings.storeName || "";
+  document.getElementById("setting-birth-year").value = settings.birthYear || "";
+  document.getElementById("setting-gcash").value = settings.gcash || "";
   document.getElementById("setting-pin").value = settings.pin || "";
   document.getElementById("setting-credit-limit").value = settings.creditLimit || "";
-  document.getElementById("setting-gcash").value = settings.gcash || "";
   document.getElementById("setting-maya").value = settings.maya || "";
+  updateStoreIdPreview();
   modalSettings.classList.remove("hidden");
 });
 
@@ -633,6 +665,7 @@ document.getElementById("btn-cancel-settings").addEventListener("click", () => m
 document.getElementById("form-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  const birthYear = document.getElementById("setting-birth-year").value.trim();
   const phone = document.getElementById("setting-gcash").value.trim();
   const pinVal = document.getElementById("setting-pin").value.trim();
 
@@ -641,19 +674,26 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
     return;
   }
 
-  // Anchor the store to a unique phone vault so they never lose access
-  const targetVaultId = `store_${phone}`;
+  const computedStoreId = computeStoreId(birthYear, phone);
+  if (computedStoreId === "------" || computedStoreId.length !== 6) {
+    alert("Pakisiguradong tama ang nilagay na taon (Hal. 1988) at 11-digit mobile number.");
+    return;
+  }
+
+  const targetVaultId = `store_${computedStoreId}`;
 
   const updatedSettings = {
     storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
+    birthYear: birthYear,
+    gcash: phone,
+    storeId: computedStoreId,
     pin: pinVal,
     creditLimit: parseFloat(document.getElementById("setting-credit-limit").value) || 0,
-    gcash: phone,
     maya: document.getElementById("setting-maya").value.trim()
   };
 
   try {
-    // If transitioning from local temp vault, migrate existing records over
+    // If transitioning from temporary vault, migrate existing records over
     if (activeVaultId !== targetVaultId && records.length > 0) {
       for (const rec of records) {
         await db.collection("vaults").doc(targetVaultId).collection("records").add(rec);
@@ -666,7 +706,8 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
     sessionStorage.setItem("pm_unlocked", "true");
     modalSettings.classList.add("hidden");
     document.getElementById("print-store-name").innerText = updatedSettings.storeName;
-    showToast("Settings and cloud vault secured permanently!");
+    alert(`Nai-save ang iyong settings!\n\nIyong 6-Digit Store ID: ${computedStoreId}\n\nTandaan ang Store ID na ito at ang iyong 4-digit PIN upang maibalik ang data kung sakaling lumipat ka ng cellphone!`);
+    showToast("Settings and Store ID secured permanently!");
   } catch (err) {
     alert("Error saving settings: " + err.message);
   }
@@ -901,16 +942,24 @@ const AI_KNOWLEDGE = [
     response: "Hello po! Ako si Ate Lisa. Nandito ako para gabayan ka sa paggamit ng Palista Muna para protektado ang kita ng iyong tindahan!"
   },
   {
+    triggers: ["store id", "compute", "formula", "paano makuha"],
+    response: "Madali lang kunin ang iyong 6-digit **Store ID**! Ito ay ang kombinasyon ng **Huling 3 digits ng taon ng iyong kapanganakan** at **Huling 3 digits ng iyong mobile number**.<br><br>Halimbawa: Kung ipinanganak ka noong 1988 at ang cellphone mo ay 09673467128, ang iyong Store ID ay: **988128**."
+  },
+  {
+    triggers: ["bawal", "wallet pin", "gcash pin", "bangko", "banking pin", "same pin"],
+    response: "🛡️ **Mahigpit na Paalala:** Huwag na huwag pong gagamitin ang parehong PIN ng inyong **GCash, Maya, o Online Banking**! Gumamit ng kakaibang 4-digit PIN sa Palista Muna para kahit anong mangyari, manatiling ligtas ang inyong pera sa bangko o e-wallet."
+  },
+  {
     triggers: ["recover", "nawala", "lumipat", "bagong phone", "bura", "paano ibalik"],
-    response: "Huwag mag-alala! Kung lumipat ka ng cellphone o na-clear ang browser, i-click lamang ang **'Switch Device / Account Recovery'** sa ibaba (o sa PIN screen). Ilagay ang iyong GCash/Mobile number at 4-digit PIN, at kusa nitong ibabalik ang lahat ng iyong records!"
+    response: "Kung lumipat ka ng cellphone o na-clear ang data, i-click lamang ang **'Switch Device / Store ID Recovery'** sa PIN screen o sa footer. Ilagay ang iyong 6-digit Store ID (hal. 988128) at 4-digit PIN, at kusa nitong ibabalik ang iyong records!"
   },
   {
     triggers: ["safe ba", "ligtas ba", "safe", "secure", "manakaw", "leak", "hacked"],
-    response: "Opo, 100% safe at secured ang Palista Muna! Ang iyong listahan ay nakatago sa sarili mong pribadong cloud vault. Ikaw lamang ang may hawak ng iyong 4-digit PIN at mobile access."
+    response: "Opo, 100% safe at secured ang Palista Muna! Ang iyong listahan ay nakatago sa sarili mong pribadong cloud vault. Ikaw lamang ang may hawak ng iyong Store ID at 4-digit PIN."
   },
   {
     triggers: ["privacy", "dpa", "ra 10173", "data"],
-    response: "Sumusunod ang Palista Muna sa Data Privacy Act (RA 10173). Hindi namin ibinebenta ang numero ng mga customer mo at ikaw lamang ang may hawak ng iyong ledger."
+    response: "Sumusunod ang Palista Muna sa Data Privacy Act (RA 10173). Hindi namin ibinebenta ang numero ng mga customer mo at ikaw lamang ang may access sa iyong listahan."
   },
   {
     triggers: ["credit limit", "limit", "cap"],
@@ -929,7 +978,7 @@ function getAiAnswer(input) {
       return item.response;
     }
   }
-  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong: 'Paano mag-recover ng data kapag lumipat ng phone?', 'Safe ba gamitin ito?', o 'Paano i-print ang kasunduan?'.";
+  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong: 'Paano makuha ang Store ID?', 'Bawal ba gamitin ang GCash PIN ko?', 'Paano mag-recover ng data?', o 'Safe ba gamitin ito?'.";
 }
 
 function appendMessage(sender, text) {

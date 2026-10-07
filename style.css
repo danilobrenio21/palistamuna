@@ -514,6 +514,36 @@ body {
   cursor: pointer;
 }
 
+/* Store ID Preview & Warning Box */
+.store-id-preview-box {
+  background: rgba(163, 255, 0, 0.05);
+  border: 1px dashed var(--accent-lime);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.store-id-badge {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-lime);
+  letter-spacing: 0.18em;
+  margin: 0.25rem 0;
+}
+
+.security-warning-box {
+  background: rgba(255, 56, 96, 0.12);
+  border: 1px solid rgba(255, 56, 96, 0.4);
+  color: #ffadb9;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-top: 0.65rem;
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;
@@ -668,6 +698,10 @@ input:focus, textarea:focus {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.tour-skip:hover {
+  color: var(--text-main);
 }
 
 .tour-title {
