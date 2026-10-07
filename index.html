@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Palista Muna - Digital Ledger</title>
   
-  <!-- Favicon & PWA Icons -->
   <link rel="icon" type="image/jpeg" href="palistamuna.jpg">
   <link rel="apple-touch-icon" href="palistamuna.jpg">
 
-  <!-- PWA Meta -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0c0d12">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,6 +20,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+  <!-- 4-Digit Security PIN Screen -->
+  <div id="pin-screen" class="pin-screen hidden">
+    <div class="pin-card">
+      <img src="palistamuna.jpg" alt="Logo" class="pin-logo">
+      <h3 id="pin-title">Enter Store PIN</h3>
+      <p id="pin-sub" class="text-muted">Enter your 4-digit code to access your records</p>
+      
+      <div class="pin-dots">
+        <span class="dot" id="dot-0"></span>
+        <span class="dot" id="dot-1"></span>
+        <span class="dot" id="dot-2"></span>
+        <span class="dot" id="dot-3"></span>
+      </div>
+
+      <div class="pin-keypad">
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('1')">1</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('2')">2</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('3')">3</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('4')">4</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('5')">5</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('6')">6</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('7')">7</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('8')">8</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('9')">9</button>
+        <button type="button" class="btn-key clear interactive-fx" onclick="clearPin()">C</button>
+        <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('0')">0</button>
+        <button type="button" class="btn-key delete interactive-fx" onclick="deletePinDigit()">⌫</button>
+      </div>
+    </div>
+  </div>
 
   <header class="app-header">
     <div class="header-container">
@@ -37,6 +66,10 @@
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           Settings
         </button>
+        <button class="btn btn-secondary interactive-fx" id="btn-open-closing">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Daily Summary
+        </button>
         <button class="btn btn-secondary interactive-fx" id="btn-export">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Export CSV
@@ -50,7 +83,6 @@
   </header>
 
   <main class="main-container">
-    <!-- Analytics Grid -->
     <section class="metrics-grid">
       <div class="card metric-card">
         <span class="metric-label">Total Collectible</span>
@@ -69,7 +101,6 @@
       </div>
     </section>
 
-    <!-- Ledger View Section -->
     <div id="section-ledger">
       <section class="controls-bar">
         <div class="filter-tabs">
@@ -106,7 +137,6 @@
       </section>
     </div>
 
-    <!-- Suki Directory View Section -->
     <div id="section-suki" class="hidden">
       <section class="card table-card">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 8px;">
@@ -130,17 +160,36 @@
       </section>
     </div>
 
-    <!-- Privacy & CPI Notice Footer -->
     <footer style="margin-top: 2.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid #1c1c24; padding-top: 1.25rem;">
       <p>Palista Muna complies with the Philippine Data Privacy Act (RA 10173). Contact details are processed securely and strictly used for merchant-to-customer SMS notices.</p>
     </footer>
   </main>
 
-  <!-- Modal: Store & Payment Settings -->
+  <!-- Modal: Daily Closing Summary -->
+  <div class="modal-overlay hidden" id="modal-closing">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>End-of-Day Closing Summary</h3>
+        <button class="btn-close interactive-fx" id="btn-close-closing">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label>Daily Performance Report</label>
+        <textarea id="closing-report-text" rows="8" readonly style="font-family: var(--font-mono); font-size: 0.8rem;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-copy-closing">Copy Report</button>
+        <button type="button" class="btn btn-primary interactive-fx" id="btn-done-closing">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Store Settings (PIN & Credit Limit) -->
   <div class="modal-overlay hidden" id="modal-settings">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Store & Payment Settings</h3>
+        <h3>Store & Security Settings</h3>
         <button class="btn-close interactive-fx" id="btn-close-settings">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
@@ -149,6 +198,16 @@
         <div class="form-group">
           <label>Store Name</label>
           <input type="text" id="setting-store-name" placeholder="e.g. Aling Nena Store" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>4-Digit App PIN (Optional)</label>
+            <input type="password" id="setting-pin" maxlength="4" placeholder="e.g. 1234">
+          </div>
+          <div class="form-group">
+            <label>Default Credit Limit / Customer (₱)</label>
+            <input type="number" id="setting-credit-limit" placeholder="e.g. 1000">
+          </div>
         </div>
         <div class="form-group">
           <label>GCash Number (For Reminders)</label>
@@ -166,7 +225,7 @@
     </div>
   </div>
 
-  <!-- Modal: Add Record with Quick Tally & Barcode Scanner -->
+  <!-- Modal: Add Record with Credit Limit Warning -->
   <div class="modal-overlay hidden" id="modal-add">
     <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
       <div class="modal-header">
@@ -191,7 +250,10 @@
           </div>
         </div>
 
-        <!-- Quick Item Tally Presets -->
+        <div id="credit-limit-warning" class="warning-banner hidden">
+          ⚠️ <strong>Babala:</strong> Lalampas sa itinakdang credit limit ang customer na ito!
+        </div>
+
         <div class="form-group">
           <label>Quick Tally Presets</label>
           <div class="quick-presets">
@@ -203,7 +265,6 @@
           </div>
         </div>
 
-        <!-- Barcode Scanner Trigger & Viewport -->
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
             <label style="margin: 0;">Items Purchased</label>
@@ -284,12 +345,27 @@
     </div>
   </div>
 
-  <div id="toast" class="toast hidden">Message copied to clipboard!</div>
+  <!-- Interactive Product Tour Modal / Overlay -->
+  <div id="tour-overlay" class="tour-overlay hidden">
+    <div id="tour-backdrop" class="tour-backdrop"></div>
+    <div id="tour-card" class="tour-card interactive-fx">
+      <div class="tour-header">
+        <span class="tour-badge" id="tour-step-badge">STEP 1 NG 5</span>
+        <button type="button" class="tour-skip" id="btn-tour-skip">Skip</button>
+      </div>
+      <h4 id="tour-title" class="tour-title">Maligayang Pagdating sa Palista Muna!</h4>
+      <p id="tour-desc" class="tour-desc">Gabay ito kung paano gamitin ang bawat button para iwas-lugi ang iyong tindahan.</p>
+      
+      <div class="tour-footer">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-tour-prev">Bumalik</button>
+        <button type="button" class="btn btn-primary interactive-fx" id="btn-tour-next">Susunod</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- Barcode Scanner Library -->
+  <div id="toast" class="toast hidden">Notice</div>
+
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>

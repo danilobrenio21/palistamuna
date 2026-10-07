@@ -17,11 +17,8 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Multi-tab offline persistence
 db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-  if (err.code !== 'failed-precondition') {
-    console.warn("Persistence note:", err.code);
-  }
+  if (err.code !== 'failed-precondition') console.warn("Persistence note:", err.code);
 });
 
 // User-scoped references
@@ -29,7 +26,7 @@ let utangCol = null;
 let settingsDoc = null;
 let currentUser = null;
 
-// Product Barcode Catalog
+// Local Catalog for Scanner
 const BARCODE_CATALOG = {
   "4800016644800": { name: "Lucky Me Instant Pancit Canton Kalamansi", price: 18 },
   "4800016654809": { name: "Lucky Me Instant Pancit Canton Original", price: 18 },
@@ -39,14 +36,15 @@ const BARCODE_CATALOG = {
   "4800016643018": { name: "Lucky Me Beef Mami", price: 15 }
 };
 
-// State
+// Application State
 let records = [];
-let settings = { storeName: "Tindahan", gcash: "", maya: "" };
+let settings = { storeName: "Tindahan", gcash: "", maya: "", pin: "", creditLimit: 0 };
 let activeFilter = "all";
 let currentView = "ledger";
 let html5QrCode = null;
+let enteredPin = "";
 
-// Elements
+// Element Selectors
 const ledgerBody = document.getElementById("ledger-body");
 const sukiBody = document.getElementById("suki-body");
 const emptyState = document.getElementById("empty-state");
@@ -68,11 +66,51 @@ const modalAdd = document.getElementById("modal-add");
 const modalPayment = document.getElementById("modal-payment");
 const modalReminder = document.getElementById("modal-reminder");
 const modalSettings = document.getElementById("modal-settings");
+const modalClosing = document.getElementById("modal-closing");
+const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
 
-// Yellow-Green Neon Click Ripple Effect
+// Tour Elements
+const tourSteps = [
+  {
+    targetId: null,
+    title: "Maligayang Pagdating sa Palista Muna!",
+    desc: "Mag-quick tour tayo para malaman kung paano gamitin ang bawat button para iwas-lugi ang tindahan."
+  },
+  {
+    targetId: "btn-open-add",
+    title: "+ Add Record Button",
+    desc: "Dito ka magtatala ng bagong pautang. May Quick Tally (+₱55 Bigas, +₱18 Canton) at barcode scanner camera para mabilis maglista!"
+  },
+  {
+    targetId: "btn-toggle-view",
+    title: "Suki Directory",
+    desc: "I-click ito para makita ang credit reliability score ng mga customer (Good Payer, Follow-Up Needed, o High Risk)."
+  },
+  {
+    targetId: "btn-open-closing",
+    title: "Daily Closing Summary",
+    desc: "Pagpatak ng gabi, i-click ito para sa buong summary ng nasingil mo ngayong araw at sino ang dapat singilin bukas."
+  },
+  {
+    targetId: "btn-open-settings",
+    title: "Settings & Security PIN",
+    desc: "Dito mo ilalagay ang iyong GCash/Maya number para sa SMS reminder, 4-digit security PIN lock, at credit limit."
+  }
+];
+
+let currentTourStep = 0;
+const tourOverlay = document.getElementById("tour-overlay");
+const tourStepBadge = document.getElementById("tour-step-badge");
+const tourTitle = document.getElementById("tour-title");
+const tourDesc = document.getElementById("tour-desc");
+const btnTourPrev = document.getElementById("btn-tour-prev");
+const btnTourNext = document.getElementById("btn-tour-next");
+const btnTourSkip = document.getElementById("btn-tour-skip");
+
+// Neon Ripple Touch/Click Effect
 document.addEventListener("click", (e) => {
-  const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn");
+  const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key");
   if (!target) return;
 
   const rect = target.getBoundingClientRect();
@@ -104,7 +142,63 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// Auth State Isolation
+// PIN Security Handling
+function checkPinRequired() {
+  if (settings.pin && settings.pin.length === 4) {
+    const isUnlocked = sessionStorage.getItem("pm_unlocked");
+    if (!isUnlocked) {
+      enteredPin = "";
+      updatePinDots();
+      pinScreen.classList.remove("hidden");
+    }
+  } else {
+    pinScreen.classList.add("hidden");
+  }
+}
+
+window.handlePinInput = function(num) {
+  if (enteredPin.length < 4) {
+    enteredPin += num;
+    updatePinDots();
+    if (enteredPin.length === 4) {
+      setTimeout(verifyPin, 100);
+    }
+  }
+};
+
+window.deletePinDigit = function() {
+  enteredPin = enteredPin.slice(0, -1);
+  updatePinDots();
+};
+
+window.clearPin = function() {
+  enteredPin = "";
+  updatePinDots();
+};
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot) {
+      if (i < enteredPin.length) dot.classList.add("filled");
+      else dot.classList.remove("filled");
+    }
+  }
+}
+
+function verifyPin() {
+  if (enteredPin === settings.pin) {
+    sessionStorage.setItem("pm_unlocked", "true");
+    pinScreen.classList.add("hidden");
+    showToast("Welcome back!");
+  } else {
+    showToast("Incorrect PIN code");
+    enteredPin = "";
+    updatePinDots();
+  }
+}
+
+// Authentication & Sync
 auth.onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
@@ -121,7 +215,10 @@ auth.onAuthStateChanged((user) => {
     }, console.error);
 
     settingsDoc.onSnapshot((doc) => {
-      if (doc.exists) settings = doc.data();
+      if (doc.exists) {
+        settings = doc.data();
+        checkPinRequired();
+      }
     });
   } else {
     auth.signInAnonymously().catch(console.error);
@@ -303,8 +400,38 @@ document.querySelectorAll(".tally-btn").forEach(btn => {
     } else {
       itemsInput.value = itemName;
     }
+    checkCreditLimit();
   });
 });
+
+// Credit Limit Check
+function checkCreditLimit() {
+  const limit = parseFloat(settings.creditLimit) || 0;
+  if (limit <= 0) return;
+
+  const phone = document.getElementById("add-phone").value.trim();
+  const name = document.getElementById("add-name").value.trim().toLowerCase();
+  const addingAmt = parseFloat(document.getElementById("add-amount").value) || 0;
+
+  let existingBal = 0;
+  records.forEach(r => {
+    if ((phone && r.phone === phone) || (name && (r.name || "").toLowerCase() === name)) {
+      existingBal += (r.amount - (r.paid || 0));
+    }
+  });
+
+  const warningEl = document.getElementById("credit-limit-warning");
+  if (existingBal + addingAmt > limit) {
+    warningEl.innerHTML = `⚠️ <strong>Babala:</strong> Lampas sa ₱${limit.toFixed(2)} limit! Total utang ni customer magiging: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
+    warningEl.classList.remove("hidden");
+  } else {
+    warningEl.classList.add("hidden");
+  }
+}
+
+document.getElementById("add-phone").addEventListener("input", checkCreditLimit);
+document.getElementById("add-name").addEventListener("input", checkCreditLimit);
+document.getElementById("add-amount").addEventListener("input", checkCreditLimit);
 
 // Barcode Scanner
 const btnToggleScanner = document.getElementById("btn-toggle-scanner");
@@ -313,9 +440,7 @@ const scannerWrapper = document.getElementById("scanner-wrapper");
 
 btnToggleScanner.addEventListener("click", () => {
   scannerWrapper.classList.remove("hidden");
-  if (!html5QrCode) {
-    html5QrCode = new Html5Qrcode("reader");
-  }
+  if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
   const qrConfig = { fps: 10, qrbox: { width: 250, height: 150 } };
   html5QrCode.start(
@@ -335,20 +460,19 @@ btnToggleScanner.addEventListener("click", () => {
         itemsInput.value = itemsInput.value ? `${itemsInput.value}, Barcode: ${decodedText}` : `Barcode: ${decodedText}`;
         showToast(`Barcode scanned: ${decodedText}`);
       }
+      checkCreditLimit();
       stopScanner();
     },
     () => {}
   ).catch(err => {
-    alert("Camera permission denied or camera not found: " + err);
+    alert("Camera permission denied: " + err);
     scannerWrapper.classList.add("hidden");
   });
 });
 
 function stopScanner() {
   if (html5QrCode && html5QrCode.isScanning) {
-    html5QrCode.stop().then(() => {
-      scannerWrapper.classList.add("hidden");
-    }).catch(console.error);
+    html5QrCode.stop().then(() => scannerWrapper.classList.add("hidden")).catch(console.error);
   } else {
     scannerWrapper.classList.add("hidden");
   }
@@ -356,13 +480,12 @@ function stopScanner() {
 
 btnStopScanner.addEventListener("click", stopScanner);
 
-// Quick Due Date Presets
+// Due Date Presets
 document.querySelectorAll(".btn-preset:not(.tally-btn)").forEach(btn => {
   btn.addEventListener("click", () => {
     const today = new Date();
-    if (btn.dataset.days) {
-      today.setDate(today.getDate() + parseInt(btn.dataset.days));
-    } else if (btn.dataset.preset === "15th") {
+    if (btn.dataset.days) today.setDate(today.getDate() + parseInt(btn.dataset.days));
+    else if (btn.dataset.preset === "15th") {
       today.setDate(15);
       if (new Date().getDate() >= 15) today.setMonth(today.getMonth() + 1);
     } else if (btn.dataset.preset === "30th") {
@@ -373,9 +496,45 @@ document.querySelectorAll(".btn-preset:not(.tally-btn)").forEach(btn => {
   });
 });
 
+// Daily Closing Summary Report
+document.getElementById("btn-open-closing").addEventListener("click", () => {
+  const today = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+  let totalActiveCollectible = 0;
+  let overdueCollectible = 0;
+  let dueTomorrowList = [];
+
+  records.forEach(r => {
+    const bal = r.amount - (r.paid || 0);
+    if (bal > 0) {
+      totalActiveCollectible += bal;
+      if (r.dueDate < today) overdueCollectible += bal;
+      if (r.dueDate === tomorrowStr) dueTomorrowList.push(`${r.name} (₱${bal.toFixed(2)})`);
+    }
+  });
+
+  const report = `📊 PALISTA MUNA - DAILY CLOSING REPORT\nStore: ${settings.storeName || 'Tindahan'}\nDate: ${today}\n-----------------------------------\n• Total Active Collectibles: ₱${totalActiveCollectible.toFixed(2)}\n• Total Overdue Amount: ₱${overdueCollectible.toFixed(2)}\n\n⏰ ACCOUNTS DUE TOMORROW (${tomorrowStr}):\n${dueTomorrowList.length > 0 ? dueTomorrowList.join('\n') : 'No accounts due tomorrow.'}\n-----------------------------------`;
+
+  document.getElementById("closing-report-text").value = report;
+  modalClosing.classList.remove("hidden");
+});
+
+document.getElementById("btn-close-closing").addEventListener("click", () => modalClosing.classList.add("hidden"));
+document.getElementById("btn-done-closing").addEventListener("click", () => modalClosing.classList.add("hidden"));
+document.getElementById("btn-copy-closing").addEventListener("click", () => {
+  const text = document.getElementById("closing-report-text").value;
+  navigator.clipboard.writeText(text);
+  showToast("Report copied to clipboard!");
+});
+
 // Settings Handlers
 document.getElementById("btn-open-settings").addEventListener("click", () => {
   document.getElementById("setting-store-name").value = settings.storeName || "";
+  document.getElementById("setting-pin").value = settings.pin || "";
+  document.getElementById("setting-credit-limit").value = settings.creditLimit || "";
   document.getElementById("setting-gcash").value = settings.gcash || "";
   document.getElementById("setting-maya").value = settings.maya || "";
   modalSettings.classList.remove("hidden");
@@ -388,8 +547,16 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
   e.preventDefault();
   if (!settingsDoc) return;
 
+  const pinVal = document.getElementById("setting-pin").value.trim();
+  if (pinVal && pinVal.length !== 4) {
+    alert("PIN must be exactly 4 digits or left completely blank.");
+    return;
+  }
+
   const updatedSettings = {
     storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
+    pin: pinVal,
+    creditLimit: parseFloat(document.getElementById("setting-credit-limit").value) || 0,
     gcash: document.getElementById("setting-gcash").value.trim(),
     maya: document.getElementById("setting-maya").value.trim()
   };
@@ -404,7 +571,10 @@ document.getElementById("form-settings").addEventListener("submit", async (e) =>
 });
 
 // Add Record Handlers
-document.getElementById("btn-open-add").addEventListener("click", () => modalAdd.classList.remove("hidden"));
+document.getElementById("btn-open-add").addEventListener("click", () => {
+  document.getElementById("credit-limit-warning").classList.add("hidden");
+  modalAdd.classList.remove("hidden");
+});
 document.getElementById("btn-close-add").addEventListener("click", () => {
   stopScanner();
   modalAdd.classList.add("hidden");
@@ -467,9 +637,7 @@ document.getElementById("form-payment").addEventListener("submit", async (e) => 
   if (!record) return;
 
   try {
-    await utangCol.doc(id).update({
-      paid: (record.paid || 0) + payAmt
-    });
+    await utangCol.doc(id).update({ paid: (record.paid || 0) + payAmt });
     modalPayment.classList.add("hidden");
     showToast("Payment recorded!");
   } catch (err) {
@@ -544,4 +712,64 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.href = url;
   a.download = `PalistaMuna_${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
+});
+
+// --- Onboarding Tour Logic ---
+function showTourStep(index) {
+  document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
+
+  const step = tourSteps[index];
+  tourStepBadge.innerText = `STEP ${index + 1} NG ${tourSteps.length}`;
+  tourTitle.innerText = step.title;
+  tourDesc.innerText = step.desc;
+
+  btnTourPrev.style.display = index === 0 ? "none" : "block";
+  btnTourNext.innerText = index === tourSteps.length - 1 ? "Tapos Na! 🎉" : "Susunod ➔";
+
+  if (step.targetId) {
+    const el = document.getElementById(step.targetId);
+    if (el) {
+      el.classList.add("tour-highlight");
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+}
+
+function startTour() {
+  currentTourStep = 0;
+  tourOverlay.classList.remove("hidden");
+  showTourStep(currentTourStep);
+}
+
+function endTour() {
+  document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
+  tourOverlay.classList.add("hidden");
+  localStorage.setItem("palistamuna_tour_done", "true");
+}
+
+btnTourNext.addEventListener("click", () => {
+  if (currentTourStep < tourSteps.length - 1) {
+    currentTourStep++;
+    showTourStep(currentTourStep);
+  } else {
+    endTour();
+    showToast("Tour completed! Pwede ka nang maglista.");
+  }
+});
+
+btnTourPrev.addEventListener("click", () => {
+  if (currentTourStep > 0) {
+    currentTourStep--;
+    showTourStep(currentTourStep);
+  }
+});
+
+btnTourSkip.addEventListener("click", endTour);
+
+// Auto-trigger tour only for first-time visitors
+window.addEventListener("DOMContentLoaded", () => {
+  const isDone = localStorage.getItem("palistamuna_tour_done");
+  if (!isDone) {
+    setTimeout(startTour, 600);
+  }
 });

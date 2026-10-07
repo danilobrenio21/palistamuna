@@ -12,6 +12,7 @@
   --text-muted: #8b949e;
   --danger: #ff3860;
   --danger-glow: rgba(255, 56, 96, 0.2);
+  --warning: #ffaa00;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -33,6 +34,72 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* PIN Lock Screen */
+.pin-screen {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.pin-card {
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.pin-logo {
+  height: 52px;
+  margin-bottom: 1.25rem;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.pin-dots .dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.pin-dots .dot.filled {
+  background: var(--accent-lime);
+  border-color: var(--accent-lime);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.btn-key {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.btn-key.clear, .btn-key.delete {
+  font-size: 1rem;
+  color: var(--text-muted);
 }
 
 /* Header & Brand Container */
@@ -61,7 +128,6 @@ body {
   align-items: center;
 }
 
-/* Full-width Centered Hero Banner Logo */
 .brand-logo {
   width: 100%;
   max-width: 380px;
@@ -71,7 +137,6 @@ body {
   display: block;
 }
 
-/* Mobile Button Grid Layout */
 .header-actions {
   width: 100%;
   max-width: 420px;
@@ -80,8 +145,8 @@ body {
   gap: 0.65rem;
 }
 
-#btn-export {
-  grid-column: span 2;
+#btn-open-closing, #btn-export {
+  grid-column: span 1;
 }
 
 #btn-open-add {
@@ -116,7 +181,7 @@ body {
     gap: 0.6rem;
   }
 
-  #btn-export, #btn-open-add {
+  #btn-open-closing, #btn-export, #btn-open-add {
     grid-column: auto;
     width: auto;
     padding: 0.55rem 1rem;
@@ -133,7 +198,6 @@ body {
   flex: 1;
 }
 
-/* SVGs & Icons */
 .icon-svg {
   width: 15px;
   height: 15px;
@@ -142,14 +206,13 @@ body {
   vertical-align: middle;
 }
 
-/* Interactive Button FX & Yellow-Green Feedback */
+/* Interactive Ripple & Button Feedback */
 .interactive-fx {
   position: relative;
   overflow: hidden;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
               box-shadow 0.2s ease, 
-              border-color 0.2s ease, 
-              background-color 0.2s ease;
+              border-color 0.2s ease;
   user-select: none;
 }
 
@@ -164,7 +227,6 @@ body {
   border-color: var(--accent-yellow-green);
 }
 
-/* Yellow-Green Click Ripple Animation */
 .ripple {
   position: absolute;
   border-radius: 50%;
@@ -181,7 +243,7 @@ body {
   }
 }
 
-/* Standard Buttons */
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -205,11 +267,6 @@ body {
   box-shadow: 0 0 14px var(--accent-glow);
 }
 
-.btn-primary:hover {
-  background: var(--accent-yellow-green);
-  box-shadow: 0 0 20px rgba(196, 255, 0, 0.5);
-}
-
 .btn-secondary {
   background: var(--bg-card);
   color: var(--text-main);
@@ -225,11 +282,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-}
-
-.btn-close:hover {
-  color: var(--accent-lime);
 }
 
 /* Metric Cards */
@@ -245,11 +297,6 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.25rem;
-  transition: border-color 0.2s ease;
-}
-
-.card:hover {
-  border-color: rgba(181, 255, 0, 0.25);
 }
 
 .metric-label {
@@ -308,14 +355,12 @@ body {
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
   cursor: pointer;
-  font-family: var(--font-main);
 }
 
 .tab-btn.active {
   background: var(--accent-lime);
   color: #000000;
   font-weight: 700;
-  box-shadow: 0 0 10px var(--accent-glow-subtle);
 }
 
 .search-box {
@@ -343,12 +388,6 @@ body {
   color: var(--text-main);
   font-size: 0.82rem;
   outline: none;
-  font-family: var(--font-main);
-}
-
-.search-box input:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 10px var(--accent-glow-subtle);
 }
 
 /* Tables */
@@ -396,7 +435,6 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Badges */
 .badge {
   display: inline-block;
   padding: 3px 8px;
@@ -424,7 +462,6 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* Table Row Action Buttons */
 .table-actions {
   display: flex;
   gap: 0.35rem;
@@ -447,7 +484,17 @@ body {
   color: var(--accent-lime);
 }
 
-/* Presets & Modals */
+/* Warnings & Presets */
+.warning-banner {
+  background: rgba(255, 170, 0, 0.12);
+  border: 1px solid rgba(255, 170, 0, 0.4);
+  color: var(--warning);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
 .quick-presets {
   display: flex;
   flex-wrap: wrap;
@@ -466,6 +513,7 @@ body {
   cursor: pointer;
 }
 
+/* Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -485,7 +533,6 @@ body {
   width: 100%;
   max-width: 480px;
   padding: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
 }
 
 .modal-header {
@@ -540,7 +587,6 @@ input:focus, textarea:focus {
   margin-top: 1.25rem;
 }
 
-/* Toast */
 .toast {
   position: fixed;
   bottom: 2rem;
@@ -554,6 +600,101 @@ input:focus, textarea:focus {
   font-size: 0.82rem;
   box-shadow: 0 0 20px var(--accent-glow);
   z-index: 300;
+}
+
+/* Interactive Tour System */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.tour-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(3px);
+  transition: all 0.3s ease;
+}
+
+.tour-highlight {
+  position: relative !important;
+  z-index: 10001 !important;
+  box-shadow: 0 0 0 4px var(--accent-lime), 0 0 25px var(--accent-glow) !important;
+  border-radius: var(--radius-sm);
+  transition: all 0.3s ease;
+}
+
+.tour-card {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 380px;
+  background: #111317;
+  border: 1px solid var(--accent-lime);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), 0 0 20px var(--accent-glow-subtle);
+  z-index: 10002;
+  transition: all 0.25s ease;
+}
+
+.tour-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.tour-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  background: rgba(163, 255, 0, 0.15);
+  color: var(--accent-lime);
+  padding: 2px 8px;
+  border-radius: 50px;
+  border: 1px solid rgba(163, 255, 0, 0.3);
+}
+
+.tour-skip {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tour-skip:hover {
+  color: var(--text-main);
+}
+
+.tour-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.4rem;
+}
+
+.tour-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 1rem;
+}
+
+.tour-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tour-footer .btn {
+  flex: 1;
 }
 
 .hidden { display: none !important; }
