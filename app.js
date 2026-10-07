@@ -21,10 +21,12 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code !== 'failed-precondition') console.warn("Persistence note:", err.code);
 });
 
-// References
+// Vault ID Anchor
+let activeVaultId = localStorage.getItem("palista_vault_id") || null;
 let utangCol = null;
 let settingsDoc = null;
-let currentUser = null;
+let recordsUnsub = null;
+let settingsUnsub = null;
 
 // Product Catalog
 const BARCODE_CATALOG = {
@@ -68,6 +70,7 @@ const modalReminder = document.getElementById("modal-reminder");
 const modalSettings = document.getElementById("modal-settings");
 const modalClosing = document.getElementById("modal-closing");
 const modalPrivacy = document.getElementById("modal-privacy");
+const modalRecovery = document.getElementById("modal-recovery");
 const printableContract = document.getElementById("printable-contract");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
@@ -80,7 +83,7 @@ const aiMessages = document.getElementById("ai-messages");
 const aiChatForm = document.getElementById("ai-chat-form");
 const aiInput = document.getElementById("ai-input");
 
-// Tour Steps
+// Tour Elements
 const tourSteps = [
   {
     targetId: null,
@@ -123,7 +126,7 @@ const btnTourPrev = document.getElementById("btn-tour-prev");
 const btnTourNext = document.getElementById("btn-tour-next");
 const btnTourSkip = document.getElementById("btn-tour-skip");
 
-// Neon Ripple Touch/Click Effect
+// Ripple Touch Effect
 document.addEventListener("click", (e) => {
   const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key, .ai-fab, .ai-chip");
   if (!target) return;
@@ -157,20 +160,45 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// PIN Security Handling
-function checkPinRequired() {
-  if (settings.pin && settings.pin.length === 4) {
-    const isUnlocked = sessionStorage.getItem("pm_unlocked");
-    if (!isUnlocked) {
-      enteredPin = "";
-      updatePinDots();
-      pinScreen.classList.remove("hidden");
+// Attach Vault Listeners
+function bindVault(vaultId) {
+  if (recordsUnsub) recordsUnsub();
+  if (settingsUnsub) settingsUnsub();
+
+  activeVaultId = vaultId;
+  localStorage.setItem("palista_vault_id", vaultId);
+
+  utangCol = db.collection("vaults").doc(vaultId).collection("records");
+  settingsDoc = db.collection("vaults").doc(vaultId).collection("config").doc("store_settings");
+
+  recordsUnsub = utangCol.onSnapshot((snapshot) => {
+    records = [];
+    snapshot.forEach((doc) => {
+      records.push({ id: doc.id, ...doc.data() });
+    });
+    renderLedger();
+    renderSukiDirectory();
+  }, console.error);
+
+  settingsUnsub = settingsDoc.onSnapshot((doc) => {
+    if (doc.exists) {
+      settings = doc.data();
+      document.getElementById("print-store-name").innerText = settings.storeName || "Tindahan";
+      
+      // Enforce PIN lock on fresh session
+      if (settings.pin && settings.pin.length === 4) {
+        const isUnlocked = sessionStorage.getItem("pm_unlocked");
+        if (!isUnlocked) {
+          enteredPin = "";
+          updatePinDots();
+          pinScreen.classList.remove("hidden");
+        }
+      }
     }
-  } else {
-    pinScreen.classList.add("hidden");
-  }
+  });
 }
 
+// PIN Screen Handling
 window.handlePinInput = function(num) {
   if (enteredPin.length < 4) {
     enteredPin += num;
@@ -200,42 +228,75 @@ function updatePinDots() {
 }
 
 function verifyPin() {
-  if (enteredPin === settings.pin) {
+  if (settings.pin && enteredPin === settings.pin) {
     sessionStorage.setItem("pm_unlocked", "true");
     pinScreen.classList.add("hidden");
-    showToast("Welcome back!");
+    showToast("Welcome back! Na-unlock ang iyong records.");
   } else {
-    showToast("Incorrect PIN code");
+    showToast("Maling PIN code! Pakisubukan muli.");
     enteredPin = "";
     updatePinDots();
   }
 }
 
-// Authentication & Sync
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    utangCol = db.collection("users").doc(user.uid).collection("records");
-    settingsDoc = db.collection("users").doc(user.uid).collection("config").doc("store_settings");
+// Initial Auth & Vault Startup
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    await auth.signInAnonymously().catch(console.error);
+    return;
+  }
 
-    utangCol.onSnapshot((snapshot) => {
-      records = [];
-      snapshot.forEach((doc) => {
-        records.push({ id: doc.id, ...doc.data() });
-      });
-      renderLedger();
-      renderSukiDirectory();
-    }, console.error);
+  // If already linked to a phone vault, use it; otherwise assign local ID
+  if (!activeVaultId) {
+    activeVaultId = user.uid;
+    localStorage.setItem("palista_vault_id", activeVaultId);
+  }
 
-    settingsDoc.onSnapshot((doc) => {
-      if (doc.exists) {
-        settings = doc.data();
-        checkPinRequired();
-        document.getElementById("print-store-name").innerText = settings.storeName || "Tindahan";
-      }
-    });
-  } else {
-    auth.signInAnonymously().catch(console.error);
+  bindVault(activeVaultId);
+});
+
+// Recovery Modal Handlers
+document.getElementById("btn-show-recovery").addEventListener("click", () => {
+  pinScreen.classList.add("hidden");
+  modalRecovery.classList.remove("hidden");
+});
+
+document.getElementById("link-open-recovery").addEventListener("click", (e) => {
+  e.preventDefault();
+  modalRecovery.classList.remove("hidden");
+});
+
+document.getElementById("btn-close-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
+document.getElementById("btn-cancel-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
+
+// Account Recovery by Phone + PIN
+document.getElementById("form-recovery").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const phone = document.getElementById("rec-phone").value.trim();
+  const pin = document.getElementById("rec-pin").value.trim();
+
+  try {
+    const targetVaultId = `store_${phone}`;
+    const testDoc = await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").get();
+
+    if (!testDoc.exists) {
+      alert("Walang nahanap na records gamit ang numerong ito. Tiyakin na nai-save ito sa Settings noon.");
+      return;
+    }
+
+    const vaultSettings = testDoc.data();
+    if (vaultSettings.pin !== pin) {
+      alert("Maling 4-digit PIN para sa tindahang ito!");
+      return;
+    }
+
+    // Success: Link browser to this vault permanently
+    bindVault(targetVaultId);
+    sessionStorage.setItem("pm_unlocked", "true");
+    modalRecovery.classList.add("hidden");
+    showToast("Tagumpay! Naibalik ang lahat ng records ng iyong tindahan.");
+  } catch (err) {
+    alert("Error sa pag-recover: " + err.message);
   }
 });
 
@@ -428,7 +489,6 @@ function checkCreditLimit() {
   const manualLimitInput = parseFloat(document.getElementById("add-manual-limit").value);
   const defaultLimit = parseFloat(settings.creditLimit) || 0;
   
-  // Prioritize manual customer limit if given, otherwise fall back to store default limit
   const activeLimit = !isNaN(manualLimitInput) && manualLimitInput > 0 ? manualLimitInput : defaultLimit;
   if (activeLimit <= 0) {
     document.getElementById("credit-limit-warning").classList.add("hidden");
@@ -557,7 +617,7 @@ document.getElementById("btn-copy-closing").addEventListener("click", () => {
   showToast("Report copied to clipboard!");
 });
 
-// Settings Handlers
+// Settings Handlers (Saves directly to Store Vault)
 document.getElementById("btn-open-settings").addEventListener("click", () => {
   document.getElementById("setting-store-name").value = settings.storeName || "";
   document.getElementById("setting-pin").value = settings.pin || "";
@@ -572,27 +632,41 @@ document.getElementById("btn-cancel-settings").addEventListener("click", () => m
 
 document.getElementById("form-settings").addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!settingsDoc) return;
 
+  const phone = document.getElementById("setting-gcash").value.trim();
   const pinVal = document.getElementById("setting-pin").value.trim();
-  if (pinVal && pinVal.length !== 4) {
-    alert("PIN must be exactly 4 digits or left completely blank.");
+
+  if (pinVal.length !== 4) {
+    alert("Kailangan ng eksaktong 4-digit PIN.");
     return;
   }
+
+  // Anchor the store to a unique phone vault so they never lose access
+  const targetVaultId = `store_${phone}`;
 
   const updatedSettings = {
     storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
     pin: pinVal,
     creditLimit: parseFloat(document.getElementById("setting-credit-limit").value) || 0,
-    gcash: document.getElementById("setting-gcash").value.trim(),
+    gcash: phone,
     maya: document.getElementById("setting-maya").value.trim()
   };
 
   try {
-    await settingsDoc.set(updatedSettings);
+    // If transitioning from local temp vault, migrate existing records over
+    if (activeVaultId !== targetVaultId && records.length > 0) {
+      for (const rec of records) {
+        await db.collection("vaults").doc(targetVaultId).collection("records").add(rec);
+      }
+    }
+
+    await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").set(updatedSettings);
+
+    bindVault(targetVaultId);
+    sessionStorage.setItem("pm_unlocked", "true");
     modalSettings.classList.add("hidden");
     document.getElementById("print-store-name").innerText = updatedSettings.storeName;
-    showToast("Settings saved to private cloud!");
+    showToast("Settings and cloud vault secured permanently!");
   } catch (err) {
     alert("Error saving settings: " + err.message);
   }
@@ -708,7 +782,7 @@ document.getElementById("btn-copy-sms").addEventListener("click", () => {
 // Delete Record
 window.deleteRecord = async function(id) {
   if (!utangCol) return;
-  if (confirm("Are you sure you want to delete this record?")) {
+  if (confirm("Sigurado ka bang nais mong burahin ang record na ito?")) {
     try {
       await utangCol.doc(id).delete();
       showToast("Record permanently deleted.");
@@ -745,7 +819,7 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.click();
 });
 
-// Printable Contract Open/Close
+// Printable Contract
 document.getElementById("btn-open-contract").addEventListener("click", () => {
   printableContract.classList.remove("hidden");
 });
@@ -761,7 +835,7 @@ document.getElementById("link-open-privacy").addEventListener("click", (e) => {
 document.getElementById("btn-close-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
 document.getElementById("btn-ok-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
 
-// --- Onboarding Tour Logic ---
+// Onboarding Tour
 function showTourStep(index) {
   document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
 
@@ -820,57 +894,31 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// --- Expanded Conversational AI Assistant (Ate Lisa) ---
+// Ate Lisa AI Assistant Knowledge Base
 const AI_KNOWLEDGE = [
-  // Greetings
   {
-    triggers: ["hi", "hello", "kamusta", "kumusta", "magandang", "good morning", "good afternoon", "good evening", "ate lisa", "hoy"],
-    response: "Hello po! Ako si Ate Lisa, ang assistant mo sa Palista Muna. Handang tumulong para manatiling maayos, protektado, at hindi malugi ang tindahan mo! May maitutulong ba ako?"
+    triggers: ["hi", "hello", "kamusta", "kumusta", "magandang", "good morning", "ate lisa"],
+    response: "Hello po! Ako si Ate Lisa. Nandito ako para gabayan ka sa paggamit ng Palista Muna para protektado ang kita ng iyong tindahan!"
   },
-  // Security & Safety
   {
-    triggers: ["safe ba", "ligtas ba", "safe", "secure", "manakaw", "leak", "hacked", "nakaw", "scam"],
-    response: "Opo, 100% safe at secured ang Palista Muna! Ang bawat tindahan ay may sariling nakahiwalay (isolated) na cloud database sa Firebase. Hindi kailanman mababasa ng ibang tao o ibang tindahan ang iyong listahan. Pwede mo rin lagyan ng 4-digit PIN lock sa Settings para ikaw lang ang makakapagbukas sa phone mo!"
+    triggers: ["recover", "nawala", "lumipat", "bagong phone", "bura", "paano ibalik"],
+    response: "Huwag mag-alala! Kung lumipat ka ng cellphone o na-clear ang browser, i-click lamang ang **'Switch Device / Account Recovery'** sa ibaba (o sa PIN screen). Ilagay ang iyong GCash/Mobile number at 4-digit PIN, at kusa nitong ibabalik ang lahat ng iyong records!"
   },
-  // Privacy Policy & RA 10173
   {
-    triggers: ["privacy", "dpa", "ra 10173", "data", "makikita ba", "binibenta ba"],
-    response: "Sumusunod ang Palista Muna sa Philippine Data Privacy Act (RA 10173). Hindi namin ibinebenta o ipinapamahagi ang contact numbers o pangalan ng mga customer mo. Ang data ay ginagamit lamang para sa iyong lehitimong listahan at SMS reminder."
+    triggers: ["safe ba", "ligtas ba", "safe", "secure", "manakaw", "leak", "hacked"],
+    response: "Opo, 100% safe at secured ang Palista Muna! Ang iyong listahan ay nakatago sa sarili mong pribadong cloud vault. Ikaw lamang ang may hawak ng iyong 4-digit PIN at mobile access."
   },
-  // Per-Borrower Manual Credit Limit
   {
-    triggers: ["credit limit", "limit", "cap", "magkano limit", "custom limit", "lalampas"],
-    response: "Para mag-set ng sariling credit limit sa bawat umuutang, buksan ang **'+ Add Record'** at ilagay ang nais mong halaga sa **'Customer Specific Credit Limit (₱)'**. Halimbawa, kung naglagay ka ng ₱500, kusang magbibigay ng babala (warning banner) ang app kapag sinubukang lumagpas sa ₱500 ang utang niya!"
+    triggers: ["privacy", "dpa", "ra 10173", "data"],
+    response: "Sumusunod ang Palista Muna sa Data Privacy Act (RA 10173). Hindi namin ibinebenta ang numero ng mga customer mo at ikaw lamang ang may hawak ng iyong ledger."
   },
-  // Printable Contract / Agreement Form
   {
-    triggers: ["print", "agreement", "kasunduan", "form", "papel", "pirma", "contract"],
-    response: "May printable agreement form tayo! I-click lang ang **'Print Agreement'** button sa itaas. May nakahandang pormal na Kasunduan sa Pagpapautang na may kumpletong terms, credit limit, at pirmahan ng borrower at tindahan na pwede mong i-print agad!"
+    triggers: ["credit limit", "limit", "cap"],
+    response: "Kapag nag-a-add ng utang via **'+ Add Record'**, ilagay ang nais mong limitasyon sa **'Customer Specific Credit Limit (₱)'**. Magbibigay ng babala ang app kapag sosobra na sa limit ang pautang sa kanya!"
   },
-  // Adding Records
   {
-    triggers: ["paano maglista", "maglista", "add record", "magdagdag", "bagong utang", "ilista"],
-    response: "Pindutin lamang ang neon green na **'+ Add Record'** button sa itaas. Ilagay ang pangalan, active phone number, halaga, at due date. Pwede ka ring mag-click ng Quick Presets (+₱55 Bigas, +₱18 Canton) para mabilis!"
-  },
-  // SMS Reminders
-  {
-    triggers: ["sms", "remind", "paalala", "singilin", "maningil", "text"],
-    response: "Sa tabi ng pangalan ng may utang sa listahan, pindutin ang **'Remind'**. Kusang bubuo ang app ng magalang na text message na may kumpletong balanse at GCash/Maya number mo, at bubuksan ito sa sarili mong text messaging app para i-send."
-  },
-  // Suki Scoring
-  {
-    triggers: ["suki", "score", "delinquent", "high risk", "good payer"],
-    response: "Ang **Suki Directory** ay kusang sumusuri: **'Good Payer'** kung laging nagbabayad bago mag-due date, **'Follow-Up Needed'** kung may 1 overdue, at **'High Risk'** kung may 2 o higit pang beses na hindi nagbayad sa takdang araw."
-  },
-  // PIN code setup
-  {
-    triggers: ["pin", "password", "lock", "code"],
-    response: "I-click ang **'Settings'** button sa itaas, ilagay ang iyong gustong 4-digit PIN sa '4-Digit App PIN', at i-save. Sa susunod na buksan mo ang Palista Muna, hihingin ang PIN bago makita ang listahan."
-  },
-  // Daily Summary
-  {
-    triggers: ["daily summary", "closing", "gabi", "araw", "benta", "nasingil"],
-    response: "I-click ang **'Summary'** button sa itaas bago matulog para makita ang kabuuang nasingil mo ngayong araw at listahan kung sinu-sino ang may due date bukas para mapaghandaan ang paniningil!"
+    triggers: ["print", "agreement", "kasunduan", "form"],
+    response: "I-click ang **'Print Agreement'** button sa itaas para mag-print ng pormal na Kasunduan sa Pagpapautang na may kumpletong lagdaan ng tindahan at umuutang!"
   }
 ];
 
@@ -881,7 +929,7 @@ function getAiAnswer(input) {
       return item.response;
     }
   }
-  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong sa akin: 'Safe ba gamitin ito?', 'Paano i-set ang credit limit?', 'Paano i-print ang kasunduan?', o 'Paano maglista ng bagong pautang?'.";
+  return "Nandito si Ate Lisa para tumulong! Pwede mong itanong: 'Paano mag-recover ng data kapag lumipat ng phone?', 'Safe ba gamitin ito?', o 'Paano i-print ang kasunduan?'.";
 }
 
 function appendMessage(sender, text) {

@@ -21,12 +21,12 @@
 </head>
 <body>
 
-  <!-- 4-Digit Security PIN Screen -->
+  <!-- Unified Store PIN & Recovery Screen -->
   <div id="pin-screen" class="pin-screen hidden">
     <div class="pin-card">
       <img src="palistamuna.jpg" alt="Logo" class="pin-logo">
-      <h3 id="pin-title">Enter Store PIN</h3>
-      <p id="pin-sub" class="text-muted">Enter your 4-digit code to access your records</p>
+      <h3 id="pin-title">Store PIN Security</h3>
+      <p id="pin-sub" class="text-muted">Enter your 4-digit PIN to open your records</p>
       
       <div class="pin-dots">
         <span class="dot" id="dot-0"></span>
@@ -49,6 +49,41 @@
         <button type="button" class="btn-key interactive-fx" onclick="handlePinInput('0')">0</button>
         <button type="button" class="btn-key delete interactive-fx" onclick="deletePinDigit()">⌫</button>
       </div>
+
+      <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <button type="button" class="btn btn-secondary interactive-fx" id="btn-show-recovery" style="width: 100%; font-size: 0.78rem;">
+          🔄 Lumipat ng Phone o Nawala ang Data? I-recover Dito
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recovery Vault Modal -->
+  <div class="modal-overlay hidden" id="modal-recovery">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>I-recover ang Store Ledger</h3>
+        <button class="btn-close interactive-fx" id="btn-close-recovery">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Ilagay ang iyong rehistradong Store Mobile Number at ang iyong 4-digit PIN upang maibalik ang lahat ng iyong records.
+      </p>
+      <form id="form-recovery">
+        <div class="form-group">
+          <label>Store Mobile / GCash Number *</label>
+          <input type="tel" id="rec-phone" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
+        </div>
+        <div class="form-group">
+          <label>4-Digit Store PIN *</label>
+          <input type="password" id="rec-pin" maxlength="4" placeholder="••••" required pattern="[0-9]{4}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-recovery">Bumalik</button>
+          <button type="submit" class="btn btn-primary interactive-fx">I-recover ang Data</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -169,6 +204,8 @@
       <p>Palista Muna complies with the Philippine Data Privacy Act (RA 10173). Contact details are processed securely and strictly used for merchant-to-customer SMS notices.</p>
       <p style="margin-top: 6px;">
         <a href="#" id="link-open-privacy" style="color: var(--accent-lime); text-decoration: underline;">Basahin ang Buong Data Privacy Policy</a>
+        &nbsp;•&nbsp;
+        <a href="#" id="link-open-recovery" style="color: var(--text-main); text-decoration: underline;">Switch Device / Account Recovery</a>
       </p>
     </footer>
   </main>
@@ -192,14 +229,14 @@
     
     <div id="ai-messages" class="ai-messages-container">
       <div class="ai-msg bot">
-        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang lahat ng tanong mo tungkol sa paggamit ng Palista Muna, privacy, at kung paano protektahan ang tindahan mo!
+        Kumusta po! Ako si <strong>Ate Lisa</strong>. Nandito ako para sagutin ang mga tanong mo tungkol sa app, PIN recovery, at kung paano protektahan ang tindahan mo!
       </div>
     </div>
 
     <div class="ai-quick-prompts">
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-recover ang data kapag lumipat ng phone?')">Paano mag-recover ng data?</button>
       <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Safe ba gamitin ito?')">Safe ba ito?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-set ang credit limit ng customer?')">Credit limit per customer?</button>
-      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-print ang borrower agreement?')">Print agreement form?</button>
+      <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano i-set ang credit limit ng customer?')">Credit limit?</button>
       <button class="ai-chip interactive-fx" onclick="sendQuickPrompt('Paano maglista ng bagong pautang?')">Paano maglista?</button>
     </div>
 
@@ -220,18 +257,15 @@
       </div>
       <div style="font-size: 0.82rem; line-height: 1.6; color: var(--text-main);">
         <p><strong>Palista Muna Data Privacy Commitment</strong></p>
-        <p>Alinsunod sa <em>Data Privacy Act of 2012 (Republic Act No. 10173)</em> ng Pilipinas, ang Palista Muna ay mahigpit na nangangako sa pagprotekta sa personal na impormasyon ng mga may-ari ng tindahan at kanilang mga customer.</p>
+        <p>Alinsunod sa <em>Data Privacy Act of 2012 (Republic Act No. 10173)</em>, ang Palista Muna ay mahigpit na nangangako sa pagprotekta sa personal na impormasyon ng mga may-ari ng tindahan at kanilang mga customer.</p>
         <br>
         <p><strong>1. Anong Datos ang Kinokolekta?</strong></p>
-        <p>Kinokolekta lamang ng app ang impormasyong ibinibigay ng may-ari ng tindahan: Pangalan ng customer, mobile number (para sa SMS paalala), halaga ng pautang, items, at due date.</p>
+        <p>Pangalan ng customer, mobile number (para sa SMS paalala), halaga ng pautang, items, due date, at credit limit.</p>
         <br>
         <p><strong>2. Paano Pinoprotektahan ang Inyong Datos?</strong></p>
-        <p>• <strong>Per-Device / Per-User Isolation:</strong> Ang bawat tindahan ay may sariling isolated cloud partition. Hindi kailanman mababasa o makikita ng ibang tindahan ang iyong listahan.<br>
-        • <strong>Walang Public Data Selling:</strong> Hindi ibinebenta, ipinamamahagi, o ginagamit ang contact numbers ng mga umuutang sa anumang 3rd-party advertising.<br>
-        • <strong>Native SMS Routing:</strong> Ang SMS reminders ay hindi dumadaan sa third-party untrusted servers; ito ay direktang binubuksan sa native SMS messenger ng may-ari ng tindahan gamit ang sariling promo o load.</p>
-        <br>
-        <p><strong>3. Karapatan ng Gumagamit:</strong></p>
-        <p>May karapatan ang may-ari ng tindahan na magbura, mag-export sa CSV, o baguhin ang anumang record anumang oras. Ang pagbura sa app ay permanente ring nagbubura ng record sa database.</p>
+        <p>• <strong>Per-Store Vault:</strong> Nakahiwalay ang cloud storage ng bawat tindahan gamit ang PIN at Store Mobile Number.<br>
+        • <strong>Walang Public Data Selling:</strong> Hindi kailanman ibinebenta ang anumang impormasyon sa third-party advertisers.<br>
+        • <strong>Native SMS Routing:</strong> Ikaw ang nagpapadala ng text direkta mula sa sarili mong messaging app.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary interactive-fx" id="btn-ok-privacy">Naiintindihan Ko</button>
@@ -266,9 +300,9 @@
         <ol>
           <li><strong>Pagtatala sa Palista Muna:</strong> Sumasang-ayon ang Borrower na ang lahat ng kanyang utang na paninda o bilihin ay ililista at imo-monitor gamit ang <em>Palista Muna Digital Ledger</em>.</li>
           <li><strong>Pagsunod sa Due Date:</strong> Nangangako ang Borrower na magbabayad nang buo o maghuhulog bago sumapit ang itinakdang petsa ng bayaran (Due Date).</li>
-          <li><strong>Pagsunod sa Credit Limit:</strong> Hindi maaaring lumampas ang kabuuang balanse ng Borrower sa itinakdang Maximum Credit Limit nang walang hayagang pahintulot ng may-ari ng tindahan. Kapag naabot ang limit, pansamantalang ititigil ang pautang hangga't walang bayad.</li>
-          <li><strong>Pahintulot sa SMS Paalala:</strong> Kusang pinahihintulutan ng Borrower ang may-ari ng tindahan na magpadala ng magalang na SMS reminder o text notice sa kanyang mobile number kapag malapit na o lampas na sa due date.</li>
-          <li><strong>Data Privacy Consent (RA 10173):</strong> Ang personal na impormasyon (Pangalan at Numero) ay gagamitin lamang para sa lehitimong transaksyon sa pagitan ng Tindahan at Borrower. Hindi ito ipapamahagi kaninuman.</li>
+          <li><strong>Pagsunod sa Credit Limit:</strong> Hindi maaaring lumampas ang kabuuang balanse ng Borrower sa itinakdang Maximum Credit Limit nang walang hayagang pahintulot ng tindahan.</li>
+          <li><strong>Pahintulot sa SMS Paalala:</strong> Kusang pinahihintulutan ng Borrower ang may-ari ng tindahan na magpadala ng magalang na SMS reminder o text notice sa kanyang mobile number.</li>
+          <li><strong>Data Privacy Consent (RA 10173):</strong> Ang personal na impormasyon ay gagamitin lamang para sa lehitimong transaksyon sa pagitan ng Tindahan at Borrower.</li>
         </ol>
       </div>
 
@@ -310,7 +344,7 @@
     </div>
   </div>
 
-  <!-- Modal: Store Settings (PIN & Default Cap) -->
+  <!-- Modal: Store Settings (Includes Mobile Anchor & PIN) -->
   <div class="modal-overlay hidden" id="modal-settings">
     <div class="modal-content">
       <div class="modal-header">
@@ -321,30 +355,32 @@
       </div>
       <form id="form-settings">
         <div class="form-group">
-          <label>Store Name</label>
+          <label>Store Name *</label>
           <input type="text" id="setting-store-name" placeholder="e.g. Aling Nena Store" required>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>4-Digit App PIN (Optional)</label>
-            <input type="password" id="setting-pin" maxlength="4" placeholder="e.g. 1234">
+            <label>Store Mobile / GCash Number * (Para sa Recovery)</label>
+            <input type="tel" id="setting-gcash" placeholder="09xxxxxxxxx" required pattern="09[0-9]{9}">
           </div>
+          <div class="form-group">
+            <label>4-Digit App PIN *</label>
+            <input type="password" id="setting-pin" maxlength="4" placeholder="e.g. 1234" required pattern="[0-9]{4}">
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label>Default Store Credit Limit (₱)</label>
             <input type="number" id="setting-credit-limit" placeholder="e.g. 1000">
           </div>
-        </div>
-        <div class="form-group">
-          <label>GCash Number (For Reminders)</label>
-          <input type="tel" id="setting-gcash" placeholder="09xxxxxxxxx">
-        </div>
-        <div class="form-group">
-          <label>Maya Number (Optional)</label>
-          <input type="tel" id="setting-maya" placeholder="09xxxxxxxxx">
+          <div class="form-group">
+            <label>Maya Number (Optional)</label>
+            <input type="tel" id="setting-maya" placeholder="09xxxxxxxxx">
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary interactive-fx" id="btn-cancel-settings">Cancel</button>
-          <button type="submit" class="btn btn-primary interactive-fx">Save Settings</button>
+          <button type="submit" class="btn btn-primary interactive-fx">Save Settings & Secure Vault</button>
         </div>
       </form>
     </div>
@@ -376,11 +412,10 @@
         </div>
 
         <div class="form-group">
-          <label>Customer Specific Credit Limit (₱) <small style="color:var(--text-muted)">(Optional - Overrides default store limit)</small></label>
+          <label>Customer Specific Credit Limit (₱) <small style="color:var(--text-muted)">(Optional - Overrides default limit)</small></label>
           <input type="number" id="add-manual-limit" placeholder="e.g. 500 or 1500" step="any">
         </div>
 
-        <!-- Dynamic Credit Limit Warning Banner -->
         <div id="credit-limit-warning" class="warning-banner hidden">
           ⚠️ <strong>Babala:</strong> Lalampas sa itinakdang credit limit ang customer na ito!
         </div>
