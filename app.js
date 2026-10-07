@@ -13,13 +13,20 @@ const firebaseConfig = {
   appId: "1:1076687838949:web:8d31ae67f7d429da2f7e0c"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase only once
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-  if (err.code !== 'failed-precondition') console.warn("Persistence note:", err.code);
-});
+// Safely handle persistence without crashing in Safari Private Browsing mode
+if (typeof window !== 'undefined' && window.indexedDB) {
+  db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+    console.warn("Firestore offline persistence skipped (Private/Restricted browsing):", err.code);
+  });
+}
 
 // Vault ID Anchor
 let activeVaultId = localStorage.getItem("palista_vault_id") || null;
@@ -77,7 +84,7 @@ const printableSignage = document.getElementById("printable-signage");
 const pinScreen = document.getElementById("pin-screen");
 const toast = document.getElementById("toast");
 
-// Store ID Input Calculation Fields
+// Store ID Calculation Fields
 const birthYearInput = document.getElementById("setting-birth-year");
 const phoneInput = document.getElementById("setting-gcash");
 const computedStoreIdBadge = document.getElementById("setting-computed-store-id");
@@ -90,7 +97,7 @@ const aiMessages = document.getElementById("ai-messages");
 const aiChatForm = document.getElementById("ai-chat-form");
 const aiInput = document.getElementById("ai-input");
 
-// Tour Elements
+// Tour Steps
 const tourSteps = [
   {
     targetId: null,
@@ -105,7 +112,7 @@ const tourSteps = [
   {
     targetId: "btn-toggle-view",
     title: "Customer Directory",
-    desc: "View Suki credit reliability scores (Good Payer, Follow-Up Needed, or High Risk)."
+    desc: "View customer credit reliability scores (Good Payer, Follow-Up Needed, or High Risk)."
   },
   {
     targetId: "btn-open-print-hub",
@@ -133,7 +140,7 @@ const btnTourPrev = document.getElementById("btn-tour-prev");
 const btnTourNext = document.getElementById("btn-tour-next");
 const btnTourSkip = document.getElementById("btn-tour-skip");
 
-// Neon Ripple Touch Effect
+// Neon Ripple Touch Feedback
 document.addEventListener("click", (e) => {
   const target = e.target.closest(".interactive-fx, .btn, .btn-preset, .tab-btn, .table-btn, .btn-key, .ai-fab, .ai-chip");
   if (!target) return;
@@ -167,7 +174,7 @@ function getRecordStatus(record) {
   return record.dueDate < today ? "overdue" : "pending";
 }
 
-// Compute 6-Digit Store ID: Last 3 digits of Year + Last 3 digits of Phone
+// Compute 6-Digit Store ID: Last 3 digits of Year + Last 3 digits of Mobile Phone
 function computeStoreId(year, phone) {
   const cleanYear = (year || "").toString().trim();
   const cleanPhone = (phone || "").toString().trim();
@@ -181,12 +188,14 @@ function computeStoreId(year, phone) {
 }
 
 function updateStoreIdPreview() {
-  const calcId = computeStoreId(birthYearInput.value, phoneInput.value);
-  computedStoreIdBadge.innerText = calcId;
+  if (birthYearInput && phoneInput && computedStoreIdBadge) {
+    const calcId = computeStoreId(birthYearInput.value, phoneInput.value);
+    computedStoreIdBadge.innerText = calcId;
+  }
 }
 
-birthYearInput.addEventListener("input", updateStoreIdPreview);
-phoneInput.addEventListener("input", updateStoreIdPreview);
+if (birthYearInput) birthYearInput.addEventListener("input", updateStoreIdPreview);
+if (phoneInput) phoneInput.addEventListener("input", updateStoreIdPreview);
 
 // Attach Active Vault Listeners
 function bindVault(vaultId) {
@@ -206,24 +215,31 @@ function bindVault(vaultId) {
     });
     renderLedger();
     renderSukiDirectory();
-  }, console.error);
+  }, (err) => {
+    console.warn("Records snapshot listener warning:", err);
+  });
 
   settingsUnsub = settingsDoc.onSnapshot((doc) => {
     if (doc.exists) {
       settings = doc.data();
       const storeNameDisplay = settings.storeName || "Tindahan";
-      document.getElementById("print-store-name").innerText = storeNameDisplay;
-      document.getElementById("signage-store-name").innerText = storeNameDisplay.toUpperCase();
+      
+      const printStoreEl = document.getElementById("print-store-name");
+      const signStoreEl = document.getElementById("signage-store-name");
+      if (printStoreEl) printStoreEl.innerText = storeNameDisplay;
+      if (signStoreEl) signStoreEl.innerText = storeNameDisplay.toUpperCase();
       
       if (settings.pin && settings.pin.length === 4) {
         const isUnlocked = sessionStorage.getItem("pm_unlocked");
-        if (!isUnlocked) {
+        if (!isUnlocked && pinScreen) {
           enteredPin = "";
           updatePinDots();
           pinScreen.classList.remove("hidden");
         }
       }
     }
+  }, (err) => {
+    console.warn("Settings snapshot listener warning:", err);
   });
 }
 
@@ -259,7 +275,7 @@ function updatePinDots() {
 function verifyPin() {
   if (settings.pin && enteredPin === settings.pin) {
     sessionStorage.setItem("pm_unlocked", "true");
-    pinScreen.classList.add("hidden");
+    if (pinScreen) pinScreen.classList.add("hidden");
     showToast("Welcome back! Unlocked your records.");
   } else {
     showToast("Incorrect PIN code! Please try again.");
@@ -271,7 +287,11 @@ function verifyPin() {
 // Initial Startup & Auth Isolation
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    await auth.signInAnonymously().catch(console.error);
+    try {
+      await auth.signInAnonymously();
+    } catch (e) {
+      console.warn("Anonymous authentication error:", e);
+    }
     return;
   }
 
@@ -284,56 +304,69 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 // Recovery Modal Handlers
-document.getElementById("btn-show-recovery").addEventListener("click", () => {
-  pinScreen.classList.add("hidden");
-  modalRecovery.classList.remove("hidden");
-});
+const btnShowRec = document.getElementById("btn-show-recovery");
+if (btnShowRec) {
+  btnShowRec.addEventListener("click", () => {
+    if (pinScreen) pinScreen.classList.add("hidden");
+    if (modalRecovery) modalRecovery.classList.remove("hidden");
+  });
+}
 
-document.getElementById("link-open-recovery").addEventListener("click", (e) => {
-  e.preventDefault();
-  modalRecovery.classList.remove("hidden");
-});
+const linkOpenRec = document.getElementById("link-open-recovery");
+if (linkOpenRec) {
+  linkOpenRec.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (modalRecovery) modalRecovery.classList.remove("hidden");
+  });
+}
 
-document.getElementById("btn-close-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
-document.getElementById("btn-cancel-recovery").addEventListener("click", () => modalRecovery.classList.add("hidden"));
+const btnCloseRec = document.getElementById("btn-close-recovery");
+if (btnCloseRec) btnCloseRec.addEventListener("click", () => modalRecovery.classList.add("hidden"));
+
+const btnCancelRec = document.getElementById("btn-cancel-recovery");
+if (btnCancelRec) btnCancelRec.addEventListener("click", () => modalRecovery.classList.add("hidden"));
 
 // Account Recovery by 6-Digit Store ID + 4-Digit PIN
-document.getElementById("form-recovery").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const storeId = document.getElementById("rec-store-id").value.trim();
-  const pin = document.getElementById("rec-pin").value.trim();
+const formRecovery = document.getElementById("form-recovery");
+if (formRecovery) {
+  formRecovery.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const storeId = document.getElementById("rec-store-id").value.trim();
+    const pin = document.getElementById("rec-pin").value.trim();
 
-  if (storeId.length !== 6) {
-    alert("Please enter your exact 6-digit Store ID (e.g. 988128).");
-    return;
-  }
-
-  try {
-    const targetVaultId = `store_${storeId}`;
-    const testDoc = await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").get();
-
-    if (!testDoc.exists) {
-      alert("No store found matching this Store ID. Please verify your details.");
+    if (storeId.length !== 6) {
+      alert("Please enter your exact 6-digit Store ID (e.g. 988128).");
       return;
     }
 
-    const vaultSettings = testDoc.data();
-    if (vaultSettings.pin !== pin) {
-      alert("Incorrect 4-digit PIN for this Store ID!");
-      return;
-    }
+    try {
+      const targetVaultId = `store_${storeId}`;
+      const testDoc = await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").get();
 
-    bindVault(targetVaultId);
-    sessionStorage.setItem("pm_unlocked", "true");
-    modalRecovery.classList.add("hidden");
-    showToast("Success! Restored all store records.");
-  } catch (err) {
-    alert("Error during recovery: " + err.message);
-  }
-});
+      if (!testDoc.exists) {
+        alert("No store found matching this Store ID. Please verify your details.");
+        return;
+      }
+
+      const vaultSettings = testDoc.data();
+      if (vaultSettings.pin !== pin) {
+        alert("Incorrect 4-digit PIN for this Store ID!");
+        return;
+      }
+
+      bindVault(targetVaultId);
+      sessionStorage.setItem("pm_unlocked", "true");
+      modalRecovery.classList.add("hidden");
+      showToast("Success! Restored all store records.");
+    } catch (err) {
+      alert("Error during recovery: " + err.message);
+    }
+  });
+}
 
 function renderLedger() {
-  const query = searchInput.value.toLowerCase();
+  if (!ledgerBody) return;
+  const query = (searchInput ? searchInput.value : "").toLowerCase();
   ledgerBody.innerHTML = "";
 
   let totalCollectible = 0;
@@ -364,22 +397,27 @@ function renderLedger() {
     return matchesFilter && matchesSearch;
   });
 
-  document.getElementById("count-all").innerText = counts.all;
-  document.getElementById("count-overdue").innerText = counts.overdue;
-  document.getElementById("count-pending").innerText = counts.pending;
-  document.getElementById("count-settled").innerText = counts.settled;
+  const countAllEl = document.getElementById("count-all");
+  const countOverdueEl = document.getElementById("count-overdue");
+  const countPendingEl = document.getElementById("count-pending");
+  const countSettledEl = document.getElementById("count-settled");
 
-  totalCollectibleEl.innerText = `₱${totalCollectible.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  totalOverdueEl.innerText = `₱${totalOverdue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  totalCollectedEl.innerText = `₱${totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  activeSukiEl.innerText = `${pendingCount + overdueCount} active accounts`;
-  overdueCountEl.innerText = `${overdueCount} overdue accounts`;
+  if (countAllEl) countAllEl.innerText = counts.all;
+  if (countOverdueEl) countOverdueEl.innerText = counts.overdue;
+  if (countPendingEl) countPendingEl.innerText = counts.pending;
+  if (countSettledEl) countSettledEl.innerText = counts.settled;
+
+  if (totalCollectibleEl) totalCollectibleEl.innerText = `₱${totalCollectible.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  if (totalOverdueEl) totalOverdueEl.innerText = `₱${totalOverdue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  if (totalCollectedEl) totalCollectedEl.innerText = `₱${totalCollected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  if (activeSukiEl) activeSukiEl.innerText = `${pendingCount + overdueCount} active accounts`;
+  if (overdueCountEl) overdueCountEl.innerText = `${overdueCount} overdue accounts`;
 
   if (filtered.length === 0) {
-    emptyState.classList.remove("hidden");
+    if (emptyState) emptyState.classList.remove("hidden");
     return;
   }
-  emptyState.classList.add("hidden");
+  if (emptyState) emptyState.classList.add("hidden");
 
   filtered.forEach(r => {
     const balance = r.amount - (r.paid || 0);
@@ -414,6 +452,7 @@ function renderLedger() {
 }
 
 function renderSukiDirectory() {
+  if (!sukiBody) return;
   sukiBody.innerHTML = "";
   const customers = {};
 
@@ -479,21 +518,23 @@ function renderSukiDirectory() {
 }
 
 // Toggle Views
-btnToggleView.addEventListener("click", () => {
-  if (currentView === "ledger") {
-    currentView = "suki";
-    sectionLedger.classList.add("hidden");
-    sectionSuki.classList.remove("hidden");
-    btnToggleText.innerText = "View Ledger";
-    renderSukiDirectory();
-  } else {
-    currentView = "ledger";
-    sectionSuki.classList.add("hidden");
-    sectionLedger.classList.remove("hidden");
-    btnToggleText.innerText = "Customer Directory";
-    renderLedger();
-  }
-});
+if (btnToggleView) {
+  btnToggleView.addEventListener("click", () => {
+    if (currentView === "ledger") {
+      currentView = "suki";
+      if (sectionLedger) sectionLedger.classList.add("hidden");
+      if (sectionSuki) sectionSuki.classList.remove("hidden");
+      if (btnToggleText) btnToggleText.innerText = "View Ledger";
+      renderSukiDirectory();
+    } else {
+      currentView = "ledger";
+      if (sectionSuki) sectionSuki.classList.add("hidden");
+      if (sectionLedger) sectionLedger.classList.remove("hidden");
+      if (btnToggleText) btnToggleText.innerText = "Customer Directory";
+      renderLedger();
+    }
+  });
+}
 
 // Quick Item Tally
 document.querySelectorAll(".tally-btn").forEach(btn => {
@@ -522,8 +563,9 @@ function checkCreditLimit() {
   const defaultLimit = parseFloat(settings.creditLimit) || 0;
   
   const activeLimit = !isNaN(manualLimitInput) && manualLimitInput > 0 ? manualLimitInput : defaultLimit;
+  const warningEl = document.getElementById("credit-limit-warning");
   if (activeLimit <= 0) {
-    document.getElementById("credit-limit-warning").classList.add("hidden");
+    if (warningEl) warningEl.classList.add("hidden");
     return;
   }
 
@@ -538,66 +580,76 @@ function checkCreditLimit() {
     }
   });
 
-  const warningEl = document.getElementById("credit-limit-warning");
-  if (existingBal + addingAmt > activeLimit) {
-    warningEl.innerHTML = `⚠️ <strong>Warning:</strong> Exceeds ₱${activeLimit.toFixed(2)} limit for this customer! Total balance will be: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
-    warningEl.classList.remove("hidden");
-  } else {
-    warningEl.classList.add("hidden");
+  if (warningEl) {
+    if (existingBal + addingAmt > activeLimit) {
+      warningEl.innerHTML = `⚠️ <strong>Warning:</strong> Exceeds ₱${activeLimit.toFixed(2)} limit for this customer! Total balance will be: <strong>₱${(existingBal + addingAmt).toFixed(2)}</strong>`;
+      warningEl.classList.remove("hidden");
+    } else {
+      warningEl.classList.add("hidden");
+    }
   }
 }
 
-document.getElementById("add-phone").addEventListener("input", checkCreditLimit);
-document.getElementById("add-name").addEventListener("input", checkCreditLimit);
-document.getElementById("add-amount").addEventListener("input", checkCreditLimit);
-document.getElementById("add-manual-limit").addEventListener("input", checkCreditLimit);
+const addPhoneEl = document.getElementById("add-phone");
+const addNameEl = document.getElementById("add-name");
+const addAmountEl = document.getElementById("add-amount");
+const addManualLimitEl = document.getElementById("add-manual-limit");
+
+if (addPhoneEl) addPhoneEl.addEventListener("input", checkCreditLimit);
+if (addNameEl) addNameEl.addEventListener("input", checkCreditLimit);
+if (addAmountEl) addAmountEl.addEventListener("input", checkCreditLimit);
+if (addManualLimitEl) addManualLimitEl.addEventListener("input", checkCreditLimit);
 
 // Barcode Scanner
 const btnToggleScanner = document.getElementById("btn-toggle-scanner");
 const btnStopScanner = document.getElementById("btn-stop-scanner");
 const scannerWrapper = document.getElementById("scanner-wrapper");
 
-btnToggleScanner.addEventListener("click", () => {
-  scannerWrapper.classList.remove("hidden");
-  if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+if (btnToggleScanner) {
+  btnToggleScanner.addEventListener("click", () => {
+    if (scannerWrapper) scannerWrapper.classList.remove("hidden");
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-  const qrConfig = { fps: 10, qrbox: { width: 250, height: 150 } };
-  html5QrCode.start(
-    { facingMode: "environment" },
-    qrConfig,
-    (decodedText) => {
-      const product = BARCODE_CATALOG[decodedText];
-      const amountInput = document.getElementById("add-amount");
-      const itemsInput = document.getElementById("add-items");
+    const qrConfig = { fps: 10, qrbox: { width: 250, height: 150 } };
+    html5QrCode.start(
+      { facingMode: "environment" },
+      qrConfig,
+      (decodedText) => {
+        const product = BARCODE_CATALOG[decodedText];
+        const amountInput = document.getElementById("add-amount");
+        const itemsInput = document.getElementById("add-items");
 
-      if (product) {
-        const curAmt = parseFloat(amountInput.value) || 0;
-        amountInput.value = (curAmt + product.price).toFixed(2);
-        itemsInput.value = itemsInput.value ? `${itemsInput.value}, ${product.name}` : product.name;
-        showToast(`Scanned: ${product.name} (+₱${product.price})`);
-      } else {
-        itemsInput.value = itemsInput.value ? `${itemsInput.value}, Barcode: ${decodedText}` : `Barcode: ${decodedText}`;
-        showToast(`Barcode scanned: ${decodedText}`);
-      }
-      checkCreditLimit();
-      stopScanner();
-    },
-    () => {}
-  ).catch(err => {
-    alert("Camera permission denied: " + err);
-    scannerWrapper.classList.add("hidden");
+        if (product) {
+          const curAmt = parseFloat(amountInput.value) || 0;
+          amountInput.value = (curAmt + product.price).toFixed(2);
+          itemsInput.value = itemsInput.value ? `${itemsInput.value}, ${product.name}` : product.name;
+          showToast(`Scanned: ${product.name} (+₱${product.price})`);
+        } else {
+          itemsInput.value = itemsInput.value ? `${itemsInput.value}, Barcode: ${decodedText}` : `Barcode: ${decodedText}`;
+          showToast(`Barcode scanned: ${decodedText}`);
+        }
+        checkCreditLimit();
+        stopScanner();
+      },
+      () => {}
+    ).catch(err => {
+      alert("Camera permission denied: " + err);
+      if (scannerWrapper) scannerWrapper.classList.add("hidden");
+    });
   });
-});
+}
 
 function stopScanner() {
   if (html5QrCode && html5QrCode.isScanning) {
-    html5QrCode.stop().then(() => scannerWrapper.classList.add("hidden")).catch(console.error);
+    html5QrCode.stop().then(() => {
+      if (scannerWrapper) scannerWrapper.classList.add("hidden");
+    }).catch(console.error);
   } else {
-    scannerWrapper.classList.add("hidden");
+    if (scannerWrapper) scannerWrapper.classList.add("hidden");
   }
 }
 
-btnStopScanner.addEventListener("click", stopScanner);
+if (btnStopScanner) btnStopScanner.addEventListener("click", stopScanner);
 
 // Due Date Presets
 document.querySelectorAll(".btn-preset:not(.tally-btn)").forEach(btn => {
@@ -611,151 +663,191 @@ document.querySelectorAll(".btn-preset:not(.tally-btn)").forEach(btn => {
       today.setDate(30);
       if (new Date().getDate() >= 30) today.setMonth(today.getMonth() + 1);
     }
-    document.getElementById("add-due-date").value = today.toISOString().split("T")[0];
+    const dueEl = document.getElementById("add-due-date");
+    if (dueEl) dueEl.value = today.toISOString().split("T")[0];
   });
 });
 
 // Daily Closing Summary Report
-document.getElementById("btn-open-closing").addEventListener("click", () => {
-  const today = new Date().toISOString().split("T")[0];
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split("T")[0];
+const btnOpenClosing = document.getElementById("btn-open-closing");
+if (btnOpenClosing) {
+  btnOpenClosing.addEventListener("click", () => {
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-  let totalActiveCollectible = 0;
-  let overdueCollectible = 0;
-  let dueTomorrowList = [];
+    let totalActiveCollectible = 0;
+    let overdueCollectible = 0;
+    let dueTomorrowList = [];
 
-  records.forEach(r => {
-    const bal = r.amount - (r.paid || 0);
-    if (bal > 0) {
-      totalActiveCollectible += bal;
-      if (r.dueDate < today) overdueCollectible += bal;
-      if (r.dueDate === tomorrowStr) dueTomorrowList.push(`${r.name} (₱${bal.toFixed(2)})`);
-    }
+    records.forEach(r => {
+      const bal = r.amount - (r.paid || 0);
+      if (bal > 0) {
+        totalActiveCollectible += bal;
+        if (r.dueDate < today) overdueCollectible += bal;
+        if (r.dueDate === tomorrowStr) dueTomorrowList.push(`${r.name} (₱${bal.toFixed(2)})`);
+      }
+    });
+
+    const report = `📊 PALISTA MUNA - DAILY CLOSING REPORT\nStore: ${settings.storeName || 'Tindahan'}\nDate: ${today}\n-----------------------------------\n• Total Active Collectibles: ₱${totalActiveCollectible.toFixed(2)}\n• Total Overdue Amount: ₱${overdueCollectible.toFixed(2)}\n\n⏰ ACCOUNTS DUE TOMORROW (${tomorrowStr}):\n${dueTomorrowList.length > 0 ? dueTomorrowList.join('\n') : 'No accounts due tomorrow.'}\n-----------------------------------`;
+
+    const repText = document.getElementById("closing-report-text");
+    if (repText) repText.value = report;
+    if (modalClosing) modalClosing.classList.remove("hidden");
   });
+}
 
-  const report = `📊 PALISTA MUNA - DAILY CLOSING REPORT\nStore: ${settings.storeName || 'Tindahan'}\nDate: ${today}\n-----------------------------------\n• Total Active Collectibles: ₱${totalActiveCollectible.toFixed(2)}\n• Total Overdue Amount: ₱${overdueCollectible.toFixed(2)}\n\n⏰ ACCOUNTS DUE TOMORROW (${tomorrowStr}):\n${dueTomorrowList.length > 0 ? dueTomorrowList.join('\n') : 'No accounts due tomorrow.'}\n-----------------------------------`;
+const btnCloseClosing = document.getElementById("btn-close-closing");
+if (btnCloseClosing) btnCloseClosing.addEventListener("click", () => modalClosing.classList.add("hidden"));
 
-  document.getElementById("closing-report-text").value = report;
-  modalClosing.classList.remove("hidden");
-});
+const btnDoneClosing = document.getElementById("btn-done-closing");
+if (btnDoneClosing) btnDoneClosing.addEventListener("click", () => modalClosing.classList.add("hidden"));
 
-document.getElementById("btn-close-closing").addEventListener("click", () => modalClosing.classList.add("hidden"));
-document.getElementById("btn-done-closing").addEventListener("click", () => modalClosing.classList.add("hidden"));
-document.getElementById("btn-copy-closing").addEventListener("click", () => {
-  const text = document.getElementById("closing-report-text").value;
-  navigator.clipboard.writeText(text);
-  showToast("Report copied to clipboard!");
-});
+const btnCopyClosing = document.getElementById("btn-copy-closing");
+if (btnCopyClosing) {
+  btnCopyClosing.addEventListener("click", () => {
+    const text = document.getElementById("closing-report-text").value;
+    navigator.clipboard.writeText(text);
+    showToast("Report copied to clipboard!");
+  });
+}
 
 // Settings Handlers
-document.getElementById("btn-open-settings").addEventListener("click", () => {
-  document.getElementById("setting-store-name").value = settings.storeName || "";
-  document.getElementById("setting-birth-year").value = settings.birthYear || "";
-  document.getElementById("setting-gcash").value = settings.gcash || "";
-  document.getElementById("setting-pin").value = settings.pin || "";
-  document.getElementById("setting-credit-limit").value = settings.creditLimit || "";
-  document.getElementById("setting-maya").value = settings.maya || "";
-  updateStoreIdPreview();
-  modalSettings.classList.remove("hidden");
-});
+const btnOpenSettings = document.getElementById("btn-open-settings");
+if (btnOpenSettings) {
+  btnOpenSettings.addEventListener("click", () => {
+    document.getElementById("setting-store-name").value = settings.storeName || "";
+    document.getElementById("setting-birth-year").value = settings.birthYear || "";
+    document.getElementById("setting-gcash").value = settings.gcash || "";
+    document.getElementById("setting-pin").value = settings.pin || "";
+    document.getElementById("setting-credit-limit").value = settings.creditLimit || "";
+    document.getElementById("setting-maya").value = settings.maya || "";
+    updateStoreIdPreview();
+    if (modalSettings) modalSettings.classList.remove("hidden");
+  });
+}
 
-document.getElementById("btn-close-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
-document.getElementById("btn-cancel-settings").addEventListener("click", () => modalSettings.classList.add("hidden"));
+const btnCloseSettings = document.getElementById("btn-close-settings");
+if (btnCloseSettings) btnCloseSettings.addEventListener("click", () => modalSettings.classList.add("hidden"));
 
-document.getElementById("form-settings").addEventListener("submit", async (e) => {
-  e.preventDefault();
+const btnCancelSettings = document.getElementById("btn-cancel-settings");
+if (btnCancelSettings) btnCancelSettings.addEventListener("click", () => modalSettings.classList.add("hidden"));
 
-  const birthYear = document.getElementById("setting-birth-year").value.trim();
-  const phone = document.getElementById("setting-gcash").value.trim();
-  const pinVal = document.getElementById("setting-pin").value.trim();
+const formSettings = document.getElementById("form-settings");
+if (formSettings) {
+  formSettings.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  if (pinVal.length !== 4) {
-    alert("Please enter an exact 4-digit PIN.");
-    return;
-  }
+    const birthYear = document.getElementById("setting-birth-year").value.trim();
+    const phone = document.getElementById("setting-gcash").value.trim();
+    const pinVal = document.getElementById("setting-pin").value.trim();
 
-  const computedStoreId = computeStoreId(birthYear, phone);
-  if (computedStoreId === "------" || computedStoreId.length !== 6) {
-    alert("Please ensure your birth year (e.g. 1988) and 11-digit mobile number are valid.");
-    return;
-  }
-
-  const targetVaultId = `store_${computedStoreId}`;
-
-  const updatedSettings = {
-    storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
-    birthYear: birthYear,
-    gcash: phone,
-    storeId: computedStoreId,
-    pin: pinVal,
-    creditLimit: parseFloat(document.getElementById("setting-credit-limit").value) || 0,
-    maya: document.getElementById("setting-maya").value.trim()
-  };
-
-  try {
-    if (activeVaultId !== targetVaultId && records.length > 0) {
-      for (const rec of records) {
-        await db.collection("vaults").doc(targetVaultId).collection("records").add(rec);
-      }
+    if (pinVal.length !== 4) {
+      alert("Please enter an exact 4-digit PIN.");
+      return;
     }
 
-    await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").set(updatedSettings);
+    const computedStoreId = computeStoreId(birthYear, phone);
+    if (computedStoreId === "------" || computedStoreId.length !== 6) {
+      alert("Please ensure your birth year (e.g. 1988) and 11-digit mobile number are valid.");
+      return;
+    }
 
-    bindVault(targetVaultId);
-    sessionStorage.setItem("pm_unlocked", "true");
-    modalSettings.classList.add("hidden");
-    document.getElementById("print-store-name").innerText = updatedSettings.storeName;
-    document.getElementById("signage-store-name").innerText = updatedSettings.storeName.toUpperCase();
-    alert(`Settings saved successfully!\n\nYour 6-Digit Store ID: ${computedStoreId}\n\nKeep your Store ID and 4-digit PIN safe to recover your data anytime!`);
-    showToast("Settings and Store ID saved permanently!");
-  } catch (err) {
-    alert("Error saving settings: " + err.message);
-  }
-});
+    const targetVaultId = `store_${computedStoreId}`;
+
+    const updatedSettings = {
+      storeName: document.getElementById("setting-store-name").value.trim() || "Tindahan",
+      birthYear: birthYear,
+      gcash: phone,
+      storeId: computedStoreId,
+      pin: pinVal,
+      creditLimit: parseFloat(document.getElementById("setting-credit-limit").value) || 0,
+      maya: document.getElementById("setting-maya").value.trim()
+    };
+
+    try {
+      if (activeVaultId !== targetVaultId && records.length > 0) {
+        for (const rec of records) {
+          await db.collection("vaults").doc(targetVaultId).collection("records").add(rec);
+        }
+      }
+
+      await db.collection("vaults").doc(targetVaultId).collection("config").doc("store_settings").set(updatedSettings);
+
+      bindVault(targetVaultId);
+      sessionStorage.setItem("pm_unlocked", "true");
+      modalSettings.classList.add("hidden");
+      
+      const printStoreEl = document.getElementById("print-store-name");
+      const signStoreEl = document.getElementById("signage-store-name");
+      if (printStoreEl) printStoreEl.innerText = updatedSettings.storeName;
+      if (signStoreEl) signStoreEl.innerText = updatedSettings.storeName.toUpperCase();
+      
+      alert(`Settings saved successfully!\n\nYour 6-Digit Store ID: ${computedStoreId}\n\nKeep your Store ID and 4-digit PIN safe to recover your data anytime!`);
+      showToast("Settings and Store ID saved permanently!");
+    } catch (err) {
+      alert("Error saving settings: " + err.message);
+    }
+  });
+}
 
 // Add Record Handlers
-document.getElementById("btn-open-add").addEventListener("click", () => {
-  document.getElementById("credit-limit-warning").classList.add("hidden");
-  modalAdd.classList.remove("hidden");
-});
-document.getElementById("btn-close-add").addEventListener("click", () => {
-  stopScanner();
-  modalAdd.classList.add("hidden");
-});
-document.getElementById("btn-cancel-add").addEventListener("click", () => {
-  stopScanner();
-  modalAdd.classList.add("hidden");
-});
+const btnOpenAdd = document.getElementById("btn-open-add");
+if (btnOpenAdd) {
+  btnOpenAdd.addEventListener("click", () => {
+    const warnEl = document.getElementById("credit-limit-warning");
+    if (warnEl) warnEl.classList.add("hidden");
+    if (modalAdd) modalAdd.classList.remove("hidden");
+  });
+}
 
-document.getElementById("form-add").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!utangCol) return;
-
-  const manualLimit = parseFloat(document.getElementById("add-manual-limit").value) || 0;
-
-  const newRec = {
-    name: document.getElementById("add-name").value.trim(),
-    phone: document.getElementById("add-phone").value.trim(),
-    amount: parseFloat(document.getElementById("add-amount").value),
-    paid: 0,
-    items: document.getElementById("add-items").value.trim(),
-    dueDate: document.getElementById("add-due-date").value,
-    manualLimit: manualLimit,
-    createdAt: new Date().toISOString()
-  };
-
-  try {
-    await utangCol.add(newRec);
+const btnCloseAdd = document.getElementById("btn-close-add");
+if (btnCloseAdd) {
+  btnCloseAdd.addEventListener("click", () => {
     stopScanner();
     modalAdd.classList.add("hidden");
-    e.target.reset();
-    showToast("Saved to your private ledger!");
-  } catch (err) {
-    alert("Error saving record: " + err.message);
-  }
-});
+  });
+}
+
+const btnCancelAdd = document.getElementById("btn-cancel-add");
+if (btnCancelAdd) {
+  btnCancelAdd.addEventListener("click", () => {
+    stopScanner();
+    modalAdd.classList.add("hidden");
+  });
+}
+
+const formAdd = document.getElementById("form-add");
+if (formAdd) {
+  formAdd.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!utangCol) return;
+
+    const manualLimit = parseFloat(document.getElementById("add-manual-limit").value) || 0;
+
+    const newRec = {
+      name: document.getElementById("add-name").value.trim(),
+      phone: document.getElementById("add-phone").value.trim(),
+      amount: parseFloat(document.getElementById("add-amount").value),
+      paid: 0,
+      items: document.getElementById("add-items").value.trim(),
+      dueDate: document.getElementById("add-due-date").value,
+      manualLimit: manualLimit,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await utangCol.add(newRec);
+      stopScanner();
+      modalAdd.classList.add("hidden");
+      e.target.reset();
+      showToast("Saved to your private ledger!");
+    } catch (err) {
+      alert("Error saving record: " + err.message);
+    }
+  });
+}
 
 // Payment Handlers
 window.openPayment = function(id) {
@@ -768,32 +860,38 @@ window.openPayment = function(id) {
   document.getElementById("pay-balance").innerText = `₱${balance.toFixed(2)}`;
   document.getElementById("pay-amount").max = balance;
   document.getElementById("pay-amount").value = "";
-  modalPayment.classList.remove("hidden");
+  if (modalPayment) modalPayment.classList.remove("hidden");
 };
 
-document.getElementById("btn-close-payment").addEventListener("click", () => modalPayment.classList.add("hidden"));
-document.getElementById("btn-cancel-pay").addEventListener("click", () => modalPayment.classList.add("hidden"));
+const btnClosePayment = document.getElementById("btn-close-payment");
+if (btnClosePayment) btnClosePayment.addEventListener("click", () => modalPayment.classList.add("hidden"));
 
-document.getElementById("form-payment").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!utangCol) return;
+const btnCancelPay = document.getElementById("btn-cancel-pay");
+if (btnCancelPay) btnCancelPay.addEventListener("click", () => modalPayment.classList.add("hidden"));
 
-  const id = document.getElementById("pay-id").value;
-  const payAmt = parseFloat(document.getElementById("pay-amount").value);
-  const record = records.find(r => r.id === id);
+const formPayment = document.getElementById("form-payment");
+if (formPayment) {
+  formPayment.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!utangCol) return;
 
-  if (!record) return;
+    const id = document.getElementById("pay-id").value;
+    const payAmt = parseFloat(document.getElementById("pay-amount").value);
+    const record = records.find(r => r.id === id);
 
-  try {
-    await utangCol.doc(id).update({ paid: (record.paid || 0) + payAmt });
-    modalPayment.classList.add("hidden");
-    showToast("Payment recorded!");
-  } catch (err) {
-    alert("Error recording payment: " + err.message);
-  }
-});
+    if (!record) return;
 
-// Reminder Handlers (English Notice Template)
+    try {
+      await utangCol.doc(id).update({ paid: (record.paid || 0) + payAmt });
+      modalPayment.classList.add("hidden");
+      showToast("Payment recorded!");
+    } catch (err) {
+      alert("Error recording payment: " + err.message);
+    }
+  });
+}
+
+// Reminder Handlers
 window.openReminder = function(id) {
   const record = records.find(r => r.id === id);
   if (!record) return;
@@ -812,15 +910,20 @@ window.openReminder = function(id) {
   const smsBtn = document.getElementById("btn-trigger-sms");
   smsBtn.href = `sms:${record.phone}?&body=${encodeURIComponent(msg)}`;
 
-  modalReminder.classList.remove("hidden");
+  if (modalReminder) modalReminder.classList.remove("hidden");
 };
 
-document.getElementById("btn-close-reminder").addEventListener("click", () => modalReminder.classList.add("hidden"));
-document.getElementById("btn-copy-sms").addEventListener("click", () => {
-  const text = document.getElementById("remind-text").value;
-  navigator.clipboard.writeText(text);
-  showToast("Message copied to clipboard!");
-});
+const btnCloseRemind = document.getElementById("btn-close-reminder");
+if (btnCloseRemind) btnCloseRemind.addEventListener("click", () => modalReminder.classList.add("hidden"));
+
+const btnCopySms = document.getElementById("btn-copy-sms");
+if (btnCopySms) {
+  btnCopySms.addEventListener("click", () => {
+    const text = document.getElementById("remind-text").value;
+    navigator.clipboard.writeText(text);
+    showToast("Message copied to clipboard!");
+  });
+}
 
 // Delete Record
 window.deleteRecord = async function(id) {
@@ -845,93 +948,126 @@ filterTabs.forEach(tab => {
   });
 });
 
-searchInput.addEventListener("input", renderLedger);
+if (searchInput) searchInput.addEventListener("input", renderLedger);
 
 // CSV Export
-document.getElementById("btn-export").addEventListener("click", () => {
-  let csv = "Customer Name,Phone,Items,Total Amount,Balance,Due Date,Status\n";
-  records.forEach(r => {
-    const bal = r.amount - (r.paid || 0);
-    csv += `"${r.name}","${r.phone}","${r.items || ''}",${r.amount},${bal},${r.dueDate},${getRecordStatus(r)}\n`;
+const btnExport = document.getElementById("btn-export");
+if (btnExport) {
+  btnExport.addEventListener("click", () => {
+    let csv = "Customer Name,Phone,Items,Total Amount,Balance,Due Date,Status\n";
+    records.forEach(r => {
+      const bal = r.amount - (r.paid || 0);
+      csv += `"${r.name}","${r.phone}","${r.items || ''}",${r.amount},${bal},${r.dueDate},${getRecordStatus(r)}\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `PalistaMuna_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
   });
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `PalistaMuna_${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
-});
+}
 
 // Print & Download Center Hub Navigation
-document.getElementById("btn-open-print-hub").addEventListener("click", () => {
-  modalPrintHub.classList.remove("hidden");
-});
-document.getElementById("btn-close-print-hub").addEventListener("click", () => modalPrintHub.classList.add("hidden"));
-document.getElementById("btn-cancel-print-hub").addEventListener("click", () => modalPrintHub.classList.add("hidden"));
+const btnOpenPrintHub = document.getElementById("btn-open-print-hub");
+if (btnOpenPrintHub) btnOpenPrintHub.addEventListener("click", () => modalPrintHub.classList.remove("hidden"));
+
+const btnClosePrintHub = document.getElementById("btn-close-print-hub");
+if (btnClosePrintHub) btnClosePrintHub.addEventListener("click", () => modalPrintHub.classList.add("hidden"));
+
+const btnCancelPrintHub = document.getElementById("btn-cancel-print-hub");
+if (btnCancelPrintHub) btnCancelPrintHub.addEventListener("click", () => modalPrintHub.classList.add("hidden"));
 
 // Switch Views
-document.getElementById("btn-show-contract").addEventListener("click", () => {
-  modalPrintHub.classList.add("hidden");
-  printableContract.classList.remove("hidden");
-});
-document.getElementById("btn-back-contract").addEventListener("click", () => {
-  printableContract.classList.add("hidden");
-});
+const btnShowContract = document.getElementById("btn-show-contract");
+if (btnShowContract) {
+  btnShowContract.addEventListener("click", () => {
+    modalPrintHub.classList.add("hidden");
+    printableContract.classList.remove("hidden");
+  });
+}
 
-document.getElementById("btn-show-signage").addEventListener("click", () => {
-  modalPrintHub.classList.add("hidden");
-  printableSignage.classList.remove("hidden");
-});
-document.getElementById("btn-back-signage").addEventListener("click", () => {
-  printableSignage.classList.add("hidden");
-});
+const btnBackContract = document.getElementById("btn-back-contract");
+if (btnBackContract) {
+  btnBackContract.addEventListener("click", () => {
+    printableContract.classList.add("hidden");
+  });
+}
+
+const btnShowSignage = document.getElementById("btn-show-signage");
+if (btnShowSignage) {
+  btnShowSignage.addEventListener("click", () => {
+    modalPrintHub.classList.add("hidden");
+    printableSignage.classList.remove("hidden");
+  });
+}
+
+const btnBackSignage = document.getElementById("btn-back-signage");
+if (btnBackSignage) {
+  btnBackSignage.addEventListener("click", () => {
+    printableSignage.classList.add("hidden");
+  });
+}
 
 // PDF Generation via html2pdf.js
-document.getElementById("btn-dl-contract-pdf").addEventListener("click", () => {
-  showToast("Generating Agreement PDF...");
-  const element = document.getElementById("contract-doc-content");
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename: `PalistaMuna_Agreement_${settings.storeId || 'Store'}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-  html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
-});
+const btnDlContract = document.getElementById("btn-dl-contract-pdf");
+if (btnDlContract) {
+  btnDlContract.addEventListener("click", () => {
+    showToast("Generating Agreement PDF...");
+    const element = document.getElementById("contract-doc-content");
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `PalistaMuna_Agreement_${settings.storeId || 'Store'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
+  });
+}
 
-document.getElementById("btn-dl-signage-pdf").addEventListener("click", () => {
-  showToast("Generating Poster PDF...");
-  const element = document.getElementById("signage-doc-content");
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename: `PalistaMuna_Signage_${settings.storeId || 'Store'}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-  html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
-});
+const btnDlSignage = document.getElementById("btn-dl-signage-pdf");
+if (btnDlSignage) {
+  btnDlSignage.addEventListener("click", () => {
+    showToast("Generating Poster PDF...");
+    const element = document.getElementById("signage-doc-content");
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `PalistaMuna_Signage_${settings.storeId || 'Store'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => showToast("PDF downloaded!"));
+  });
+}
 
 // Privacy Policy Modal
-document.getElementById("link-open-privacy").addEventListener("click", (e) => {
-  e.preventDefault();
-  modalPrivacy.classList.remove("hidden");
-});
-document.getElementById("btn-close-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
-document.getElementById("btn-ok-privacy").addEventListener("click", () => modalPrivacy.classList.add("hidden"));
+const linkOpenPriv = document.getElementById("link-open-privacy");
+if (linkOpenPriv) {
+  linkOpenPriv.addEventListener("click", (e) => {
+    e.preventDefault();
+    modalPrivacy.classList.remove("hidden");
+  });
+}
 
-// Onboarding Tour
+const btnClosePriv = document.getElementById("btn-close-privacy");
+if (btnClosePriv) btnClosePriv.addEventListener("click", () => modalPrivacy.classList.add("hidden"));
+
+const btnOkPriv = document.getElementById("btn-ok-privacy");
+if (btnOkPriv) btnOkPriv.addEventListener("click", () => modalPrivacy.classList.add("hidden"));
+
+// Onboarding Tour Logic
 function showTourStep(index) {
   document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
 
   const step = tourSteps[index];
-  tourStepBadge.innerText = `STEP ${index + 1} OF ${tourSteps.length}`;
-  tourTitle.innerText = step.title;
-  tourDesc.innerText = step.desc;
+  if (tourStepBadge) tourStepBadge.innerText = `STEP ${index + 1} OF ${tourSteps.length}`;
+  if (tourTitle) tourTitle.innerText = step.title;
+  if (tourDesc) tourDesc.innerText = step.desc;
 
-  btnTourPrev.style.display = index === 0 ? "none" : "block";
-  btnTourNext.innerText = index === tourSteps.length - 1 ? "Get Started! 🎉" : "Next ➔";
+  if (btnTourPrev) btnTourPrev.style.display = index === 0 ? "none" : "block";
+  if (btnTourNext) btnTourNext.innerText = index === tourSteps.length - 1 ? "Get Started! 🎉" : "Next ➔";
 
   if (step.targetId) {
     const el = document.getElementById(step.targetId);
@@ -944,34 +1080,40 @@ function showTourStep(index) {
 
 function startTour() {
   currentTourStep = 0;
-  tourOverlay.classList.remove("hidden");
-  showTourStep(currentTourStep);
+  if (tourOverlay) {
+    tourOverlay.classList.remove("hidden");
+    showTourStep(currentTourStep);
+  }
 }
 
 function endTour() {
   document.querySelectorAll(".tour-highlight").forEach(el => el.classList.remove("tour-highlight"));
-  tourOverlay.classList.add("hidden");
+  if (tourOverlay) tourOverlay.classList.add("hidden");
   localStorage.setItem("palistamuna_tour_done", "true");
 }
 
-btnTourNext.addEventListener("click", () => {
-  if (currentTourStep < tourSteps.length - 1) {
-    currentTourStep++;
-    showTourStep(currentTourStep);
-  } else {
-    endTour();
-    showToast("Tour completed! You are ready to log entries.");
-  }
-});
+if (btnTourNext) {
+  btnTourNext.addEventListener("click", () => {
+    if (currentTourStep < tourSteps.length - 1) {
+      currentTourStep++;
+      showTourStep(currentTourStep);
+    } else {
+      endTour();
+      showToast("Tour completed! You are ready to log entries.");
+    }
+  });
+}
 
-btnTourPrev.addEventListener("click", () => {
-  if (currentTourStep > 0) {
-    currentTourStep--;
-    showTourStep(currentTourStep);
-  }
-});
+if (btnTourPrev) {
+  btnTourPrev.addEventListener("click", () => {
+    if (currentTourStep > 0) {
+      currentTourStep--;
+      showTourStep(currentTourStep);
+    }
+  });
+}
 
-btnTourSkip.addEventListener("click", endTour);
+if (btnTourSkip) btnTourSkip.addEventListener("click", endTour);
 
 window.addEventListener("DOMContentLoaded", () => {
   const isDone = localStorage.getItem("palistamuna_tour_done");
@@ -980,7 +1122,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Ate Lisa AI Assistant Knowledge Base (English & Filipino Conversational Support)
+// Ate Lisa AI Assistant Knowledge Base
 const AI_KNOWLEDGE = [
   {
     triggers: ["hi", "hello", "good morning", "good afternoon", "good day", "ate lisa"],
@@ -1034,26 +1176,32 @@ window.sendQuickPrompt = function(promptText) {
   }, 350);
 };
 
-aiChatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const text = aiInput.value.trim();
-  if (!text) return;
-  appendMessage("user", text);
-  aiInput.value = "";
+if (aiChatForm) {
+  aiChatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = aiInput.value.trim();
+    if (!text) return;
+    appendMessage("user", text);
+    aiInput.value = "";
 
-  setTimeout(() => {
-    const reply = getAiAnswer(text);
-    appendMessage("bot", reply);
-  }, 350);
-});
+    setTimeout(() => {
+      const reply = getAiAnswer(text);
+      appendMessage("bot", reply);
+    }, 350);
+  });
+}
 
-aiChatBtn.addEventListener("click", () => {
-  aiChatWindow.classList.toggle("hidden");
-  if (!aiChatWindow.classList.contains("hidden")) {
-    aiInput.focus();
-  }
-});
+if (aiChatBtn) {
+  aiChatBtn.addEventListener("click", () => {
+    aiChatWindow.classList.toggle("hidden");
+    if (!aiChatWindow.classList.contains("hidden")) {
+      aiInput.focus();
+    }
+  });
+}
 
-btnCloseAi.addEventListener("click", () => {
-  aiChatWindow.classList.add("hidden");
-});
+if (btnCloseAi) {
+  btnCloseAi.addEventListener("click", () => {
+    aiChatWindow.classList.add("hidden");
+  });
+}
